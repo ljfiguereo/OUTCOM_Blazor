@@ -1,0 +1,407 @@
+@page "/admin/user-management"
+@layout AdminLayout
+@using Microsoft.AspNetCore.Authorization
+@using OutCom.Models
+@using OutCom.Services
+@inject IUserManagementService UserManagementService
+@inject IRoleManagementService RoleManagementService
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Gestión de Usuarios</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Gestión de Usuarios</h2>
+                <button class="btn btn-primary" @onclick="ShowCreateUserModal">
+                    <i class="fas fa-plus"></i> Crear Usuario
+                </button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(statusMessage))
+            {
+                <div class="alert @(isError ? "alert-danger" : "alert-success") alert-dismissible fade show" role="alert">
+                    @statusMessage
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Lista de Usuarios</h5>
+                </div>
+                <div class="card-body">
+                    @if (users == null)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (!users.Any())
+                    {
+                        <p class="text-muted">No hay usuarios registrados.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Email</th>
+                                        <th>Nombre</th>
+                                        <th>Tipo</th>
+                                        <th>Estado</th>
+                                        <th>Último Login</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in users)
+                                    {
+                                        <tr>
+                                            <td>@user.Email</td>
+                                            <td>@($"{user.FirstName} {user.LastName}")</td>
+                                            <td>
+                                                <span class="badge @(user.UserType == UserType.Admin ? "bg-danger" : "bg-primary")">
+                                                    @user.UserType
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge @(user.IsActive ? "bg-success" : "bg-secondary")">
+                                                    @(user.IsActive ? "Activo" : "Inactivo")
+                                                </span>
+                                            </td>
+                                            <td>@(user.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? "Nunca")</td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditUserModal(user)">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-warning" @onclick="() => ShowChangePasswordModal(user)">
+                                                        <i class="fas fa-key"></i>
+                                                    </button>
+                                                    @if (user.IsActive)
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => DeactivateUser(user.Id)">
+                                                            <i class="fas fa-ban"></i>
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-success" @onclick="() => ActivateUser(user.Id)">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para crear usuario -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Nuevo Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <EditForm Model="createUserModel" OnValidSubmit="CreateUser">
+                <DataAnnotationsValidator />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <InputText class="form-control" @bind-Value="createUserModel.Email" />
+                        <ValidationMessage For="() => createUserModel.Email" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <InputText class="form-control" @bind-Value="createUserModel.FirstName" />
+                        <ValidationMessage For="() => createUserModel.FirstName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Apellido</label>
+                        <InputText class="form-control" @bind-Value="createUserModel.LastName" />
+                        <ValidationMessage For="() => createUserModel.LastName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <InputText type="password" class="form-control" @bind-Value="createUserModel.Password" />
+                        <ValidationMessage For="() => createUserModel.Password" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Usuario</label>
+                        <InputSelect class="form-select" @bind-Value="createUserModel.UserType">
+                            <option value="@UserType.Client">Cliente</option>
+                            <option value="@UserType.Admin">Administrador</option>
+                        </InputSelect>
+                        <ValidationMessage For="() => createUserModel.UserType" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" disabled="@isProcessing">
+                        @if (isProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Crear Usuario
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambiar contraseña -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cambiar Contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <EditForm Model="changePasswordModel" OnValidSubmit="ChangePassword">
+                <DataAnnotationsValidator />
+                <div class="modal-body">
+                    <p><strong>Usuario:</strong> @selectedUser?.Email</p>
+                    <div class="mb-3">
+                        <label class="form-label">Nueva Contraseña</label>
+                        <InputText type="password" class="form-control" @bind-Value="changePasswordModel.NewPassword" />
+                        <ValidationMessage For="() => changePasswordModel.NewPassword" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirmar Contraseña</label>
+                        <InputText type="password" class="form-control" @bind-Value="changePasswordModel.ConfirmPassword" />
+                        <ValidationMessage For="() => changePasswordModel.ConfirmPassword" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning" disabled="@isProcessing">
+                        @if (isProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Cambiar Contraseña
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ApplicationUser>? users;
+    private ApplicationUser? selectedUser;
+    private CreateUserModel createUserModel = new();
+    private ChangePasswordModel changePasswordModel = new();
+    private string statusMessage = string.Empty;
+    private bool isError = false;
+    private bool isProcessing = false;
+    private string currentUserId = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            users = (await UserManagementService.GetAllUsersAsync()).ToList();
+            
+            // Obtener el usuario actual
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            currentUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error al cargar usuarios: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    private async Task ShowCreateUserModal()
+    {
+        createUserModel = new CreateUserModel();
+        await JSRuntime.InvokeVoidAsync("bootstrap.Modal.getOrCreateInstance", "#createUserModal").AsTask();
+        await JSRuntime.InvokeVoidAsync("bootstrap.Modal.getInstance", "#createUserModal").AsTask();
+        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('createUserModal')).show()");
+    }
+
+    private async Task ShowChangePasswordModal(ApplicationUser user)
+    {
+        selectedUser = user;
+        changePasswordModel = new ChangePasswordModel();
+        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('changePasswordModal')).show()");
+    }
+
+    private async Task ShowEditUserModal(ApplicationUser user)
+    {
+        // Implementar edición de usuario si es necesario
+    }
+
+    private async Task CreateUser()
+    {
+        try
+        {
+            isProcessing = true;
+            var result = await UserManagementService.CreateUserAsync(
+                createUserModel.Email,
+                createUserModel.Password,
+                createUserModel.FirstName,
+                createUserModel.LastName,
+                createUserModel.UserType,
+                currentUserId
+            );
+
+            if (result.Succeeded)
+            {
+                statusMessage = "Usuario creado exitosamente.";
+                isError = false;
+                await LoadUsers();
+                await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide()");
+            }
+            else
+            {
+                statusMessage = $"Error al crear usuario: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        if (selectedUser == null) return;
+
+        try
+        {
+            isProcessing = true;
+            var result = await UserManagementService.UpdateUserPasswordAsync(selectedUser.Id, changePasswordModel.NewPassword, currentUserId);
+
+            if (result.Succeeded)
+            {
+                statusMessage = "Contraseña actualizada exitosamente.";
+                isError = false;
+                await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide()");
+            }
+            else
+            {
+                statusMessage = $"Error al cambiar contraseña: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task DeactivateUser(string userId)
+    {
+        try
+        {
+            var result = await UserManagementService.DeactivateUserAsync(userId, currentUserId);
+            if (result.Succeeded)
+            {
+                statusMessage = "Usuario desactivado exitosamente.";
+                isError = false;
+                await LoadUsers();
+            }
+            else
+            {
+                statusMessage = $"Error al desactivar usuario: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    private async Task ActivateUser(string userId)
+    {
+        try
+        {
+            var result = await UserManagementService.ActivateUserAsync(userId, currentUserId);
+            if (result.Succeeded)
+            {
+                statusMessage = "Usuario activado exitosamente.";
+                isError = false;
+                await LoadUsers();
+            }
+            else
+            {
+                statusMessage = $"Error al activar usuario: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    public class CreateUserModel
+    {
+        [Required(ErrorMessage = "El email es requerido")]
+        [EmailAddress(ErrorMessage = "Email inválido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El nombre es requerido")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El apellido es requerido")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La contraseña es requerida")]
+        [StringLength(100, ErrorMessage = "La contraseña debe tener al menos {2} caracteres.", MinimumLength = 6)]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El tipo de usuario es requerido")]
+        public UserType UserType { get; set; } = UserType.Client;
+    }
+
+    public class ChangePasswordModel
+    {
+        [Required(ErrorMessage = "La nueva contraseña es requerida")]
+        [StringLength(100, ErrorMessage = "La contraseña debe tener al menos {2} caracteres.", MinimumLength = 6)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirmar contraseña es requerido")]
+        [Compare(nameof(NewPassword), ErrorMessage = "Las contraseñas no coinciden")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

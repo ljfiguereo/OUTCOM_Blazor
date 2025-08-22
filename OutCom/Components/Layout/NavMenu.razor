@@ -1,0 +1,177 @@
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+<div class="sticky">
+    <div class="app-sidebar__overlay" data-bs-toggle="sidebar"></div>
+    <div class="app-sidebar">
+        <div class="side-header">
+            <a class="header-brand1" href="index.html">
+                <img src="images/brand/logo-white.png" class="header-brand-img desktop-logo" alt="logo">
+                <img src="images/brand/icon-white.png" class="header-brand-img toggle-logo"
+                     alt="logo">
+                <img src="images/brand/icon-dark.png" class="header-brand-img light-logo" alt="logo">
+                <img src="images/brand/logo-dark.png" class="header-brand-img light-logo1"
+                     alt="logo">
+            </a>
+            <!-- LOGO -->
+        </div>
+        <div class="main-sidemenu">
+            <div class="slide-left disabled" id="slide-left">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="#7b8191" width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z" />
+                </svg>
+            </div>
+            <ul class="side-menu">
+                <li class="sub-category">
+                    <h3>Main</h3>
+                </li>
+                <li class="slide">
+                    <a class="side-menu__item has-link" data-bs-toggle="slide" href="index.html">
+                        <i class="side-menu__icon fe fe-home"></i><span class="side-menu__label">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <NavLink class="side-menu__item has-link" href="my-files">
+                        <i class="side-menu__icon fe fe-folder"></i>
+                        <span class="side-menu__label">Archivos</span>
+                    </NavLink>
+                </li>
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <li>
+                            <NavLink class="side-menu__item has-link" href="admin">
+                                <i class="side-menu__icon fe fe-settings"></i>
+                                <span class="side-menu__label">Administración</span>
+                                <span class="badge bg-danger br-5 side-badge">Admin</span>
+                            </NavLink>
+                        </li>
+                    </Authorized>
+                </AuthorizeView>
+                <li>
+                    <NavLink class="side-menu__item has-link" href="counter">
+                        <i class="side-menu__icon fe fe-zap"></i>
+                        <span class="side-menu__label">Counter</span>
+                        <span class="badge bg-green br-5 side-badge blink-text pb-1">New</span>
+                    </NavLink>
+                </li>
+                <li class="slide">
+                    <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0)">
+                        <i class="side-menu__icon fe fe-folder"></i><span class="side-menu__label">
+                            File Manager
+                        </span><span class="badge bg-pink side-badge">4</span><i class="angle fe fe-chevron-right hor-angle"></i>
+                    </a>
+                    <ul class="slide-menu">
+                        <li class="panel sidetab-menu">
+                            <div class="panel-body tabs-menu-body p-0 border-0">
+                                <div class="tab-content">
+                                    <div class="tab-pane active" id="side17">
+                                        <ul class="sidemenu-list">
+                                            <li class="side-menu-label1"><a href="javascript:void(0)">File Manager</a></li>
+                                            <li><a href="file-manager.html" class="slide-item"> File Manager</a></li>
+                                            <li><a href="filemanager-list.html" class="slide-item"> File Manager List</a></li>
+                                            <li><a href="filemanager-details.html" class="slide-item"> File Details</a></li>
+                                            <li><a href="file-attachments.html" class="slide-item"> File Attachments</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            <div class="slide-right" id="slide-right">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191"
+                     width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M10.707 17.707 16.414 12l-5.707-5.707-1.414 1.414L13.586 12l-4.293 4.293z" />
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="counter">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="weather">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="auth">
+                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Auth Required
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Manage">
+                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                        <button type="submit" class="nav-link">
+                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                        </button>
+                    </form>
+                </div>
+            </Authorized>-->
+            @*<NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Register">
+                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Login">
+                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                    </NavLink>
+                </div>
+            </NotAuthorized>*@
+        <!--</AuthorizeView>
+    </nav>
+</div>-->
+
+@code {
+    private string? currentUrl;
+
+    protected override void OnInitialized()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}
+

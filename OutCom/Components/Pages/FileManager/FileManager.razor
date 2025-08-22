@@ -1,0 +1,244 @@
+﻿@page "/my-files"
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IWebHostEnvironment Environment
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<h3>Mis Archivos</h3>
+
+<div class="mb-3">
+    <label for="fileInput" class="form-label">Subir Nuevo Archivo</label>
+    <InputFile id="fileInput" OnChange="HandleFileSelected" class="form-control" disabled="@isUploading" />
+    @if (isUploading)
+    {<div class="spinner-border spinner-border-sm" role="status"></div>}
+</div>
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <div class="alert alert-info my-2">@statusMessage</div>
+}
+
+<div class="file-grid">
+    @foreach (var file in userFiles)
+    {
+        <div class="file-card">
+            <div class="file-icon"><span class="oi @GetFileIcon(file.Name)"></span></div>
+            <div class="file-name" title="@file.Name">@file.Name</div>
+            <div class="file-size">@FormatFileSize(file.Length)</div>
+            <div class="file-actions">
+                <a href="/download/@file.Name" class="btn btn-sm btn-outline-success"
+                   title="Descargar">
+                    <span class="fe fe-download"></span>
+                </a>
+                <button class="btn btn-sm btn-outline-primary"
+                        @onclick="() => OpenShareModal(file.Name)" title="Compartir">
+                    <span class="fe fe-share"></span>
+                </button>
+                <button class="btn btn-sm btn-outline-danger"
+                        @onclick="() => DeleteFile(file.Name)" title="Eliminar">
+                    <span class="fe fe-trash"></span>
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@if (showShareModal)
+{
+    <div class="modal fade show" style="display:block" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Compartir Archivo</h5>
+                    <button type="button" class="btn-close"
+                            @onclick="() => showShareModal = false">
+                        x
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Generar enlace para: <strong>@fileToShare</strong></p>
+                    @if (string.IsNullOrEmpty(generatedShareLink))
+                    {
+                        <button class="btn btn-primary" @onclick="GenerateShareLink">Generar Enlace</button>
+                    }
+                    else
+                    {
+                        <p>¡Enlace generado!</p>
+                        <input type="text" class="form-control" value="@generatedShareLink" readonly />
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn ripple btn-danger" @onclick="() => showShareModal = false">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+<style>
+    .file-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+
+    .file-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        background-color:white
+    }
+
+    .file-icon .oi {
+        font-size: 48px;
+    }
+
+    .file-name {
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        position:static !important;
+        color:gray
+    }
+
+    .file-size {
+        font-size: 0.8rem;
+        color: #666;
+    }
+
+    .file-actions {
+        margin-top: 0.5rem;
+    }
+</style>
+
+@code {
+    private List<FileInfo> userFiles = new();
+    private string? userId;
+    private bool isUploading = false;
+    private string? statusMessage;
+
+    // Variables para el modal de compartir
+    private bool showShareModal = false;
+    private string? fileToShare;
+    private string generatedShareLink = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is not null && user.Identity.IsAuthenticated)
+        {
+            userId = user.FindFirst(c => c.Type.Contains("nameidentifier"))?.Value;
+            LoadUserFiles();
+        }
+    }
+
+    private void LoadUserFiles()
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        var userFolderPath = Path.Combine(Environment.WebRootPath, "UserFiles", userId);
+        if (Directory.Exists(userFolderPath))
+        {
+            var directoryInfo = new DirectoryInfo(userFolderPath);
+            userFiles = directoryInfo.GetFiles().ToList();
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        if (string.IsNullOrEmpty(userId) || e.FileCount == 0) return;
+        isUploading = true;
+        statusMessage = $"Subiendo {e.File.Name}...";
+        StateHasChanged();
+
+        try
+        {
+            var file = e.File;
+            var userFolderPath = Path.Combine(Environment.WebRootPath, "UserFiles", userId);
+            var filePath = Path.Combine(userFolderPath, file.Name);
+
+            await using var fs = new FileStream(filePath, FileMode.Create);
+            await file.OpenReadStream(15 * 1024 * 1024).CopyToAsync(fs); // Límite de 15MB
+
+            statusMessage = $"'{file.Name}' subido con éxito.";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error al subir: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+            LoadUserFiles();
+        }
+    }
+
+    private void DeleteFile(string fileName)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        var filePath = Path.Combine(Environment.WebRootPath, "UserFiles", userId, fileName);
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+            statusMessage = $"'{fileName}' eliminado.";
+            LoadUserFiles();
+        }
+    }
+
+    private void OpenShareModal(string fileName)
+    {
+        fileToShare = fileName;
+        generatedShareLink = "";
+        showShareModal = true;
+    }
+
+    private async Task GenerateShareLink()
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(fileToShare)) return;
+
+        var newLink = new SharedLink
+        {
+            Id = Guid.NewGuid(),
+            FileName = fileToShare,
+            OwnerUserId = userId,
+            ExpirationDate = null // Puedes añadir lógica para esto
+        };
+
+        DbContext.SharedLinks.Add(newLink);
+        await DbContext.SaveChangesAsync();
+
+        var baseUri = Navigation.BaseUri;
+        generatedShareLink = $"{baseUri}share/{newLink.Id}";
+    }
+
+    // Funciones de ayuda para la UI
+    private string GetFileIcon(string fileName)
+    {
+        return Path.GetExtension(fileName).ToLowerInvariant() switch
+        {
+            ".jpg" or ".png" or ".jpeg" => "oi-image",
+            ".pdf" => "oi-document",
+            ".mp4" or ".mov" => "oi-video",
+            ".zip" or ".rar" => "oi-folder",
+            _ => "oi-file",
+        };
+    }
+    private string FormatFileSize(long bytes)
+    {
+        var anit = new[] { "B", "KB", "MB", "GB", "TB" };
+        double pow = Math.Floor((bytes > 0 ? Math.Log(bytes) : 0) / Math.Log(1024));
+        pow = Math.Min(pow, anit.Length - 1);
+        var valor = bytes / Math.Pow(1024, pow);
+        return valor.ToString(pow == 0 ? "F0" : "F2") + " " + anit[(int)pow];
+    }
+}

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36310.24
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OutCom", "OutCom\OutCom.csproj", "{EC6CE4D7-D542-44D5-BAAF-3E1B24196F43}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EC6CE4D7-D542-44D5-BAAF-3E1B24196F43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC6CE4D7-D542-44D5-BAAF-3E1B24196F43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC6CE4D7-D542-44D5-BAAF-3E1B24196F43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC6CE4D7-D542-44D5-BAAF-3E1B24196F43}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3D59F2C1-916E-426F-BB6D-FFEC26D8D6FE}
+	EndGlobalSection
+EndGlobal
