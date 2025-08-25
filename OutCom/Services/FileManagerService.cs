@@ -21,6 +21,9 @@ namespace OutCom.Services
         Task<bool> CanUserAccessFileAsync(int fileItemId, string userId);
         Task<FileItem?> GetFileItemByIdAsync(int fileItemId);
         Task<List<FileItem>> GetFolderTreeAsync(string userId, bool isAdmin = false);
+        Task<bool> UpdateFilePropertiesAsync(int fileItemId, string title, DateTime? expirationDate, string userId);
+        Task<bool> UpdateMultipleFilePropertiesAsync(List<int> fileItemIds, DateTime? expirationDate, bool removeExistingDates, string userId);
+        Task<FileItem?> SaveFileWithPropertiesAsync(string fileName, string title, DateTime? expirationDate, string path, Stream fileStream, string mimeType, string ownerId, string webRootPath, string? clientId = null);
     }
 
     public class FileManagerService : IFileManagerService
@@ -307,6 +310,125 @@ namespace OutCom.Services
             }
 
             return await query.OrderBy(f => f.Path).ToListAsync();
+        }
+
+        public async Task<bool> UpdateFilePropertiesAsync(int fileItemId, string title, DateTime? expirationDate, string userId)
+        {
+            var fileItem = await _context.FileItems.FirstOrDefaultAsync(f => f.Id == fileItemId && !f.IsDeleted);
+            if (fileItem == null) return false;
+
+            // Verificar permisos
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user?.UserType != UserType.Admin && fileItem.OwnerId != userId)
+            {
+                return false;
+            }
+
+            // Solo actualizar archivos, no carpetas
+            if (fileItem.Type != FileItemType.File) return false;
+
+            fileItem.Title = title?.Trim();
+            fileItem.ExpirationDate = expirationDate;
+            fileItem.ModifiedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> UpdateMultipleFilePropertiesAsync(List<int> fileItemIds, DateTime? expirationDate, bool removeExistingDates, string userId)
+        {
+            var fileItems = await GetSelectedFileItemsAsync(fileItemIds, userId);
+            var files = fileItems.Where(f => f.Type == FileItemType.File).ToList();
+            
+            if (!files.Any()) return false;
+
+            foreach (var file in files)
+            {
+                if (removeExistingDates)
+                {
+                    file.ExpirationDate = null;
+                }
+                else if (expirationDate.HasValue)
+                {
+                    file.ExpirationDate = expirationDate.Value;
+                }
+                file.ModifiedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<FileItem?> SaveFileWithPropertiesAsync(string fileName, string title, DateTime? expirationDate, string path, Stream fileStream, string mimeType, string ownerId, string webRootPath, string? clientId = null)
+        {
+            try
+            {
+                // Crear el directorio del usuario si no existe
+                var userDirectory = Path.Combine(webRootPath, "UserFiles", ownerId);
+                if (!Directory.Exists(userDirectory))
+                {
+                    Directory.CreateDirectory(userDirectory);
+                }
+
+                // Crear subdirectorios si es necesario
+                if (!string.IsNullOrEmpty(path))
+                {
+                    var subDirectory = Path.Combine(userDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                    if (!Directory.Exists(subDirectory))
+                    {
+                        Directory.CreateDirectory(subDirectory);
+                    }
+                }
+
+                // Generar nombre único si el archivo ya existe
+                var finalFileName = fileName;
+                var filePath = string.IsNullOrEmpty(path) 
+                    ? Path.Combine(userDirectory, finalFileName)
+                    : Path.Combine(userDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()), finalFileName);
+                
+                var counter = 1;
+                var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+                var extension = Path.GetExtension(fileName);
+                
+                while (File.Exists(filePath))
+                {
+                    finalFileName = $"{nameWithoutExtension}({counter}){extension}";
+                    filePath = string.IsNullOrEmpty(path) 
+                        ? Path.Combine(userDirectory, finalFileName)
+                        : Path.Combine(userDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()), finalFileName);
+                    counter++;
+                }
+
+                // Guardar el archivo físico
+                using (var fileStreamOutput = new FileStream(filePath, FileMode.Create))
+                {
+                    await fileStream.CopyToAsync(fileStreamOutput);
+                }
+
+                // Guardar metadatos en la base de datos con propiedades adicionales
+                var file = new FileItem
+                {
+                    Name = finalFileName,
+                    Title = title?.Trim(),
+                    Path = string.IsNullOrEmpty(path) ? finalFileName : $"{path}/{finalFileName}",
+                    Type = FileItemType.File,
+                    Size = fileStream.Length,
+                    MimeType = mimeType,
+                    ExpirationDate = expirationDate,
+                    OwnerId = ownerId,
+                    ClientId = clientId,
+                    CreatedAt = DateTime.UtcNow,
+                    ModifiedAt = DateTime.UtcNow
+                };
+
+                _context.FileItems.Add(file);
+                await _context.SaveChangesAsync();
+                return file;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
     }
 }

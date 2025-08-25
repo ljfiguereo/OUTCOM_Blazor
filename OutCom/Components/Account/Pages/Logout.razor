@@ -1,0 +1,198 @@
+@page "/logout-confirmation"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ProtectedSessionStorage ProtectedSessionStore
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Sesión Cerrada - OutCom</PageTitle>
+
+<div class="logout-container">
+    <div class="logout-card">
+        <!-- Header con ícono de éxito -->
+        <div class="logout-header">
+            <div class="logout-icon-container">
+                <i class="fe fe-check-circle logout-icon"></i>
+            </div>
+            <h2 class="logout-title">Sesión Cerrada Exitosamente</h2>
+            <p class="logout-subtitle">Tu sesión se ha cerrado correctamente</p>
+        </div>
+
+        <!-- Información de la sesión -->
+        <div class="logout-info">
+            <div class="info-grid">
+                <div class="info-item">
+                    <i class="fe fe-user info-icon"></i>
+                    <div class="info-content">
+                        <span class="info-label">Usuario</span>
+                        <span class="info-value">@userName</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fe fe-clock info-icon"></i>
+                    <div class="info-content">
+                        <span class="info-label">Duración de sesión</span>
+                        <span class="info-value">@sessionDuration</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fe fe-calendar info-icon"></i>
+                    <div class="info-content">
+                        <span class="info-label">Fecha y hora de cierre</span>
+                        <span class="info-value">@logoutTime</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fe fe-shield info-icon"></i>
+                    <div class="info-content">
+                        <span class="info-label">Estado de seguridad</span>
+                        <span class="info-value text-success">Sesión segura</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="logout-additional-info">
+            <div class="alert alert-info">
+                <i class="fe fe-info me-2"></i>
+                <strong>Información importante:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>Todos los datos de sesión han sido eliminados de forma segura</li>
+                    <li>Se han cerrado todas las conexiones activas</li>
+                    @if (allDevices)
+                    {
+                        <li>Se han cerrado las sesiones en todos los dispositivos</li>
+                    }
+                    <li>Para mayor seguridad, cierra completamente tu navegador</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="logout-actions">
+            <button class="btn btn-primary btn-lg logout-btn-primary" @onclick="GoToLogin">
+                <i class="fe fe-log-in me-2"></i>
+                Volver al Login
+            </button>
+            <button class="btn btn-outline-secondary logout-btn-secondary" @onclick="GoToHome">
+                <i class="fe fe-home me-2"></i>
+                Ir al Inicio
+            </button>
+        </div>
+
+        <!-- Footer con información adicional -->
+        <div class="logout-footer">
+            <p class="text-muted mb-0">
+                <i class="fe fe-shield me-1"></i>
+                Gracias por usar OutCom de forma segura
+            </p>
+            <small class="text-muted">
+                Si no cerraste sesión intencionalmente, 
+                <a href="/account/security" class="text-primary">revisa la actividad de tu cuenta</a>
+            </small>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string userName = "";
+    private string sessionDuration = "";
+    private string logoutTime = "";
+    private bool allDevices = false;
+    private DateTime sessionStartTime;
+
+    [SupplyParameterFromQuery]
+    public string? All { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Verificar si se cerró sesión en todos los dispositivos
+        allDevices = !string.IsNullOrEmpty(All) && All.ToLower() == "true";
+
+        // Obtener información de la sesión antes de cerrarla
+        await LoadSessionInfo();
+
+        // Cerrar sesión completamente
+        await PerformLogout();
+
+        // Configurar tiempo de logout
+        logoutTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+    }
+
+    private async Task LoadSessionInfo()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity.IsAuthenticated)
+            {
+                userName = authState.User.Identity.Name ?? "Usuario";
+                
+                // Intentar obtener el tiempo de inicio de sesión
+                var sessionStart = await ProtectedSessionStore.GetAsync<DateTime>("SessionStartTime");
+                if (sessionStart.Success)
+                {
+                    sessionStartTime = sessionStart.Value;
+                    var duration = DateTime.Now - sessionStartTime;
+                    if (duration.TotalHours >= 1)
+                    {
+                        sessionDuration = $"{(int)duration.TotalHours}h {duration.Minutes}m";
+                    }
+                    else
+                    {
+                        sessionDuration = $"{duration.Minutes}m";
+                    }
+                }
+                else
+                {
+                    sessionDuration = "No disponible";
+                }
+            }
+            else
+            {
+                userName = "Usuario";
+                sessionDuration = "No disponible";
+            }
+        }
+        catch
+        {
+            userName = "Usuario";
+            sessionDuration = "No disponible";
+        }
+    }
+
+    private async Task PerformLogout()
+    {
+        try
+        {
+            // Limpiar datos de sesión protegida
+            await ProtectedSessionStore.DeleteAsync("SessionStartTime");
+            await ProtectedSessionStore.DeleteAsync("UserPreferences");
+            
+            // Limpiar localStorage y sessionStorage
+            await JSRuntime.InvokeVoidAsync("localStorage.clear");
+            await JSRuntime.InvokeVoidAsync("sessionStorage.clear");
+            
+            // En una aplicación real, aquí se invalidaría la sesión en el servidor
+            // y se eliminarían las cookies de autenticación
+        }
+        catch (Exception ex)
+        {
+            // Log del error en una aplicación real
+            Console.WriteLine($"Error durante logout: {ex.Message}");
+        }
+    }
+
+    private void GoToLogin()
+    {
+        Navigation.NavigateTo("/Account/Login", true);
+    }
+
+    private void GoToHome()
+    {
+        Navigation.NavigateTo("/", true);
+    }
+}

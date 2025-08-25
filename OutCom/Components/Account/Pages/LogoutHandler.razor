@@ -1,0 +1,52 @@
+@page "/Account/Logout"
+@using Microsoft.AspNetCore.Identity
+@using OutCom.Data
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Cerrando Sesión - OutCom</PageTitle>
+
+<div class="logout-processing">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cerrando sesión...</span>
+    </div>
+    <p class="mt-3">Cerrando sesión...</p>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Cerrar la sesión del usuario
+            await SignInManager.SignOutAsync();
+            
+            // Limpiar el almacenamiento local y de sesión
+            await JSRuntime.InvokeVoidAsync("localStorage.clear");
+            await JSRuntime.InvokeVoidAsync("sessionStorage.clear");
+            
+            // Pequeña pausa para asegurar que el logout se complete
+            await Task.Delay(1000);
+            
+            // Redirigir a la página de confirmación de logout
+            Navigation.NavigateTo("/logout-confirmation", true);
+        }
+        catch (Exception ex)
+        {
+            // En caso de error, redirigir al login
+            Navigation.NavigateTo("/Account/Login", true);
+        }
+    }
+}
+
+<style>
+    .logout-processing {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 50vh;
+        text-align: center;
+    }
+</style>

@@ -80,7 +80,7 @@
         var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         if (result.Succeeded)
         {
-            Logger.LogInformation("User logged in.");
+            Logger.LogInformation("Usuario registrado.");
             RedirectManager.RedirectTo(ReturnUrl);
         }
         else if (result.RequiresTwoFactor)
@@ -91,12 +91,14 @@
         }
         else if (result.IsLockedOut)
         {
-            Logger.LogWarning("User account locked out.");
+            Logger.LogWarning("Cuenta de usuario bloqueada.");
             RedirectManager.RedirectTo("Account/Lockout");
         }
         else
         {
-            errorMessage = "Error: Invalid login attempt.";
+            errorMessage = "Los datos no coinciden.\n" +
+                    "Revisa que el usuario y la contraseña sean correctos.\n" +
+                    "Recuerda verificar si la tecla de mayúsculas (Caps Lock) está activada.";
         }
     }
 

@@ -1,5 +1,6 @@
 
 @using Microsoft.AspNetCore.Components.Authorization
+@rendermode InteractiveServer
 @using System.Security.Claims
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -43,12 +44,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="d-flex country">
-                                <a class="nav-link icon text-center" data-bs-target="#country-selector"
-                                   data-bs-toggle="modal">
-                                    <i class="fe fe-globe"></i><span class="fs-16 ms-2 d-none d-xl-block">English</span>
-                                </a>
-                            </div>
                             <!-- COUNTRY -->
                             <div class="d-flex">
                                 <a class="nav-link icon theme-layout nav-link-bg layout-setting">
@@ -68,39 +63,133 @@
                             <AuthorizeView>
                                 <Authorized>
                                     <div class="dropdown d-flex profile-1">
-                                        <a href="javascript:void(0)" data-bs-toggle="dropdown" class="nav-link leading-none d-flex">
-                                            <img src="images/users/21.jpg" alt="profile-user"
-                                                 class="avatar  profile-user brround cover-image">
+                                        <a href="javascript:void(0)" data-bs-toggle="dropdown" class="nav-link leading-none d-flex position-relative">
+                                            @if (!string.IsNullOrEmpty(userEmail))
+                                            {
+                                                <div class="avatar avatar-md brround" style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 16px;">
+                                                    @GetUserInitials(context.User.Identity.Name)
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <img src="images/users/21.jpg" alt="profile-user" class="avatar profile-user brround cover-image">
+                                            }
+                                            @if (isUserOnline)
+                                            {
+                                                <span class="avatar-status bg-green"></span>
+                                            }
                                         </a>
-                                        <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                                            <div class="drop-heading">
-                                                <div class="text-center">
-                                                    <h5 class="text-dark mb-0 fs-14 fw-semibold">@context.User.Identity.Name</h5>
+                                        <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile-dropdown" style="min-width: 280px;">
+                                            <!-- User Info Header -->
+                                            <div class="drop-heading border-bottom pb-3 mb-3">
+                                                <div class="d-flex align-items-center">
+                                                    @if (!string.IsNullOrEmpty(userEmail))
+                                                    {
+                                                        <div class="avatar avatar-lg brround me-3" style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 18px;">
+                                                            @GetUserInitials(context.User.Identity.Name)
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <img src="images/users/21.jpg" alt="profile-user" class="avatar avatar-lg brround me-3">
+                                                    }
+                                                    <div class="flex-fill">
+                                                        <h6 class="text-dark mb-1 fs-14 fw-semibold">@context.User.Identity.Name</h6>
+                                                        <p class="text-muted mb-1 fs-12">@userEmail</p>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="badge bg-success-transparent me-2">
+                                                                @if (context.User.IsInRole("Admin"))
+                                                                {
+                                                                    <i class="fe fe-shield me-1"></i><text>Administrador</text>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <i class="fe fe-user me-1"></i><text>Usuario</text>
+                                                                }
+                                                            </span>
+                                                            @if (isUserOnline)
+                                                            {
+                                                                <span class="badge bg-success-transparent">
+                                                                    <i class="fe fe-circle me-1" style="font-size: 8px;"></i>En línea
+                                                                </span>
+                                                            }
+                                                        </div>
+                                                        <small class="text-muted fs-11">
+                                                            <i class="fe fe-clock me-1"></i>Último acceso: @lastLoginTime
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Profile Section -->
+                                            <div class="dropdown-section mb-2">
+                                                <a class="dropdown-item d-flex align-items-center py-2" href="/profile">
+                                                    <i class="dropdown-icon fe fe-user me-3 text-primary"></i>
+                                                    <div>
+                                                        <span class="fw-medium">Mi Perfil</span>
+                                                        <small class="d-block text-muted">Ver y editar información personal</small>
+                                                    </div>
+                                                </a>
+                                                <a class="dropdown-item d-flex align-items-center py-2" href="/account/settings">
+                                                    <i class="dropdown-icon fe fe-settings me-3 text-info"></i>
+                                                    <div>
+                                                        <span class="fw-medium">Configuración de Cuenta</span>
+                                                        <small class="d-block text-muted">Preferencias y configuración</small>
+                                                    </div>
+                                                </a>
+                                            </div>
+
+                                            <div class="dropdown-divider my-2"></div>
+
+                                            <!-- Security Section -->
+                                            <div class="dropdown-section mb-2">
+                                                <a class="dropdown-item d-flex align-items-center py-2" href="/account/change-password">
+                                                    <i class="dropdown-icon fe fe-lock me-3 text-warning"></i>
+                                                    <div>
+                                                        <span class="fw-medium">Cambiar Contraseña</span>
+                                                        <small class="d-block text-muted">Actualizar credenciales de acceso</small>
+                                                    </div>
+                                                </a>
+                                                <a class="dropdown-item d-flex align-items-center py-2" href="/account/devices">
+                                                    <i class="dropdown-icon fe fe-smartphone me-3 text-success"></i>
+                                                    <div>
+                                                        <span class="fw-medium">Dispositivos Activos</span>
+                                                        <small class="d-block text-muted">@activeDevicesCount dispositivos conectados</small>
+                                                    </div>
+                                                </a>
+                                                <a class="dropdown-item d-flex align-items-center py-2" href="/account/security-log">
+                                                    <i class="dropdown-icon fe fe-activity me-3 text-info"></i>
+                                                    <div>
+                                                        <span class="fw-medium">Historial de Accesos</span>
+                                                        <small class="d-block text-muted">Revisar actividad de la cuenta</small>
+                                                    </div>
+                                                </a>
+                                            </div>
+
+                                            <div class="dropdown-divider my-2"></div>
+
+                                            <!-- Session Management -->
+                                            <div class="dropdown-section mb-2">
+                                                <a class="dropdown-item d-flex align-items-center py-2 text-danger" href="javascript:void(0)" @onclick="Logout">
+                                                    <i class="dropdown-icon fe fe-power me-3"></i>
+                                                    <div>
+                                                        <span class="fw-medium">Cerrar Sesión</span>
+                                                        <small class="d-block text-muted">Salir de esta sesión</small>
+                                                    </div>
+                                                </a>
+                                            </div>
+
+                                            <!-- Session Info Footer -->
+                                            <div class="dropdown-footer border-top pt-2 mt-2">
+                                                <div class="d-flex justify-content-between align-items-center">
                                                     <small class="text-muted">
-                                                        @if (context.User.IsInRole("Admin"))
-                                                        {
-                                                            <text>Administrador</text>
-                                                        }
-                                                        else
-                                                        {
-                                                            <text>Usuario</text>
-                                                        }
+                                                        <i class="fe fe-clock me-1"></i>Sesión: @sessionDuration
+                                                    </small>
+                                                    <small class="text-muted">
+                                                        <i class="fe fe-wifi me-1"></i>IP: @userIpAddress
                                                     </small>
                                                 </div>
                                             </div>
-                                            <div class="dropdown-divider m-0"></div>
-                                            <a class="dropdown-item" href="/profile">
-                                                <i class="dropdown-icon fe fe-user"></i> Perfil
-                                            </a>
-                                            <a class="dropdown-item" href="/messages">
-                                                <i class="dropdown-icon fe fe-mail"></i> Mensajes
-                                            </a>
-                                            <a class="dropdown-item" href="/settings">
-                                                <i class="dropdown-icon fe fe-settings"></i> Configuración
-                                            </a>
-                                            <a class="dropdown-item" href="javascript:void(0)" @onclick="Logout">
-                                                <i class="dropdown-icon fe fe-alert-circle"></i> Cerrar Sesión
-                                            </a>
                                         </div>
                                     </div>
                                 </Authorized>
@@ -119,8 +208,89 @@
 </div>
 
 @code {
+    private string userEmail = "";
+    private bool isUserOnline = true;
+    private string lastLoginTime = "";
+    private int activeDevicesCount = 1;
+    private string sessionDuration = "";
+    private string userIpAddress = "";
+    private DateTime sessionStartTime = DateTime.Now;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserInfo();
+
+        // Simular actualización del tiempo de sesión cada minuto
+        var timer = new System.Threading.Timer(UpdateSessionInfo, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+    }
+
+    private async Task LoadUserInfo()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity.IsAuthenticated)
+        {
+            // Obtener email del usuario desde claims
+            userEmail = authState.User.FindFirst(ClaimTypes.Email)?.Value ?? "usuario@outcom.com";
+
+            // Simular datos de sesión (en una aplicación real, estos vendrían de la base de datos)
+            lastLoginTime = DateTime.Now.AddHours(-2).ToString("dd/MM/yyyy HH:mm");
+            activeDevicesCount = new Random().Next(1, 4);
+            userIpAddress = "192.168.1." + new Random().Next(1, 255);
+
+            UpdateSessionInfo(null);
+        }
+    }
+
+    private void UpdateSessionInfo(object state)
+    {
+        var duration = DateTime.Now - sessionStartTime;
+        if (duration.TotalHours >= 1)
+        {
+            sessionDuration = $"{(int)duration.TotalHours}h {duration.Minutes}m";
+        }
+        else
+        {
+            sessionDuration = $"{duration.Minutes}m";
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetUserInitials(string fullName)
+    {
+        if (string.IsNullOrEmpty(fullName))
+            return "U";
+
+        var names = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (names.Length == 1)
+            return names[0].Substring(0, Math.Min(2, names[0].Length)).ToUpper();
+
+        return (names[0].Substring(0, 1) + names[names.Length - 1].Substring(0, 1)).ToUpper();
+    }
+
     private async Task Logout()
     {
-        Navigation.NavigateTo("/logout", true);
+        // Crear un formulario para hacer POST al endpoint de logout
+        var form = new Dictionary<string, string>
+        {
+            ["returnUrl"] = "logout"
+        };
+        
+        // Redirigir al endpoint de logout que manejará el cierre de sesión
+        Navigation.NavigateTo("/Account/Logout", forceLoad: true);
+    }
+
+    private async Task LogoutAllDevices()
+    {
+        // En una aplicación real, aquí se invalidarían todas las sesiones del usuario
+        // Por ahora, simplemente redirigimos al logout
+        Navigation.NavigateTo("/logout?all=true", true);
+    }
+
+    private async Task ToggleTheme()
+    {
+        // Implementar cambio de tema
+        // En una aplicación real, esto cambiaría la configuración del tema del usuario
+        await Task.CompletedTask;
     }
 }
