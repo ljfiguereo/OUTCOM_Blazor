@@ -266,7 +266,7 @@ else
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <span class="badge @GetActionBadgeClass(activity.Action.ToString())">@activity.Description</span>
+                                                        <span class="badge @GetActionBadgeClass(activity.Description.ToString())">@activity.Description</span>
                                                     </td>
                                                     <td>
                                                         <small class="text-muted">@activity.Timestamp.ToString("dd/MM HH:mm")</small>
@@ -480,12 +480,13 @@ else
     {
         return action.ToLower() switch
         {
-            var a when a.Contains("login") => "badge-success",
-            var a when a.Contains("logout") => "badge-secondary",
-            var a when a.Contains("create") => "badge-primary",
-            var a when a.Contains("update") => "badge-info",
-            var a when a.Contains("delete") => "badge-danger",
-            var a when a.Contains("password") => "badge-warning",
+            var a when a.Contains("login") =>  "text-success",
+            var a when a.Contains("acceso") => "text-success",
+            var a when a.Contains("logout") => "text-secondary",
+            var a when a.Contains("create") => "text-primary",
+            var a when a.Contains("update") => "text-info",
+            var a when a.Contains("delete") => "text-danger",
+            var a when a.Contains("password") => "text-warning",
             _ => "badge-light"
         };
     }

@@ -244,15 +244,26 @@ namespace OutCom.Services
                 .Take(count)
                 .ToListAsync();
 
-            return recentLogs.Select(l => new RecentActivity
+            // --- PASO 2: Extraer los IDs de usuario únicos de los logs obtenidos ---
+            var userIds = recentLogs.Select(l => l.UserId).Distinct().ToList();
+
+            // --- PASO 3: Obtener los usuarios correspondientes desde Identity ---
+            // Usamos un diccionario para que la búsqueda sea instantánea (mucho más rápido que un bucle)
+            var usersDictionary = await _userManager.Users
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.UserName); // O cualquier otro campo que necesites
+
+            return recentLogs.Select(log => new RecentActivity
             {
-                UserEmail = l.UserEmail,
-                UserName = "N/A", // AuditLog no tiene UserName directamente
-                Action = l.Action,
-                Description = l.Description,
-                Timestamp = l.Timestamp,
-                IsSuccessful = l.IsSuccessful,
-                IpAddress = l.IpAddress
+                UserEmail = log.UserEmail,
+                //UserName = "N/A", // AuditLog no tiene UserName directamente
+                Action = log.Action,
+                Description = log.Description,
+                Timestamp = log.Timestamp,
+                IsSuccessful = log.IsSuccessful,
+                IpAddress = log.IpAddress,
+                // Si no lo encuentra (ej. usuario eliminado), ponemos un valor por defecto.
+                UserName = usersDictionary.ContainsKey(log.UserId)? usersDictionary[log.UserId]: "N/A"
             }).ToList();
         }
 
