@@ -11,6 +11,8 @@ namespace OutCom.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<UserRoleAssignment> UserRoleAssignments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<FileItem> FileItems { get; set; }
+        public DbSet<OutCom.Models.FileShare> FileShares { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -43,6 +45,53 @@ namespace OutCom.Data
             builder.Entity<UserRoleAssignment>()
                 .HasIndex(ura => ura.UserId);
 
+            // FileItem configuration
+            builder.Entity<FileItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.Path).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Type).IsRequired();
+                entity.Property(e => e.Size);
+                entity.Property(e => e.MimeType).HasMaxLength(100);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.ModifiedAt).IsRequired();
+
+                // Solo relación con Owner
+                entity.HasOne(e => e.Owner)
+                    .WithMany()
+                    .HasForeignKey(e => e.OwnerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configuración de FileShare
+            builder.Entity<OutCom.Models.FileShare>()
+                .HasOne(fs => fs.FileItem)
+                .WithMany(f => f.FileShares)
+                .HasForeignKey(fs => fs.FileItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<OutCom.Models.FileShare>()
+                .HasOne(fs => fs.SharedWithUser)
+                .WithMany()
+                .HasForeignKey(fs => fs.SharedWithUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<OutCom.Models.FileShare>()
+                .HasOne(fs => fs.SharedByUser)
+                .WithMany()
+                .HasForeignKey(fs => fs.SharedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+
+
+            // Índices para FileShare
+            builder.Entity<OutCom.Models.FileShare>()
+                .HasIndex(fs => fs.SharedWithUserId);
+
+            builder.Entity<OutCom.Models.FileShare>()
+                .HasIndex(fs => fs.FileItemId);
+
             // Datos iniciales para roles
             builder.Entity<UserRole>().HasData(
                 new UserRole
@@ -62,6 +111,7 @@ namespace OutCom.Data
                     CreatedAt = DateTime.UtcNow
                 }
             );
+            // Usuarios de prueba Prueba@123
         }
     }
 }

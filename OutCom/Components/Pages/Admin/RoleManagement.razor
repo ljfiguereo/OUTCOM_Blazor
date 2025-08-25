@@ -1,5 +1,4 @@
 @page "/admin/role-management"
-@layout AdminLayout
 @using Microsoft.AspNetCore.Authorization
 @using OutCom.Models
 @using OutCom.Services
@@ -31,10 +30,12 @@
 
             <div class="row">
                 <!-- Lista de Roles -->
-                <div class="col-md-6">
+                <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="mb-0">Roles del Sistema</h5>
+                            <h5 class="card-title mb-0">
+                                <i class="fe fe-users me-2"></i>Lista de Roles
+                            </h5>
                         </div>
                         <div class="card-body">
                             @if (roles == null)
@@ -85,7 +86,7 @@
                 </div>
 
                 <!-- Asignaciones de Roles -->
-                <div class="col-md-6">
+                <div class="col-12">
                     <div class="card">
                         <div class="card-header">
                             <h5 class="mb-0">Asignaciones de Roles</h5>

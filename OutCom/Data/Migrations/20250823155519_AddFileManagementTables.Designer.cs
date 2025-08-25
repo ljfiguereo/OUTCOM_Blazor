@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OutCom.Data;
 
@@ -11,9 +12,11 @@ using OutCom.Data;
 namespace OutCom.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250823155519_AddFileManagementTables")]
+    partial class AddFileManagementTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -308,7 +311,7 @@ namespace OutCom.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AuditLogs", (string)null);
+                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("OutCom.Models.FileItem", b =>
@@ -320,7 +323,7 @@ namespace OutCom.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ClientId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -364,9 +367,17 @@ namespace OutCom.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClientId");
+
                     b.HasIndex("OwnerId");
 
-                    b.ToTable("FileItems", (string)null);
+                    b.HasIndex("ParentFolderId");
+
+                    b.HasIndex("Path");
+
+                    b.HasIndex("Type");
+
+                    b.ToTable("FileItems");
                 });
 
             modelBuilder.Entity("OutCom.Models.FileShare", b =>
@@ -411,7 +422,7 @@ namespace OutCom.Migrations
 
                     b.HasIndex("SharedWithUserId");
 
-                    b.ToTable("FileShares", (string)null);
+                    b.ToTable("FileShares");
                 });
 
             modelBuilder.Entity("OutCom.Models.SharedLink", b =>
@@ -433,7 +444,7 @@ namespace OutCom.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SharedLinks", (string)null);
+                    b.ToTable("SharedLinks");
                 });
 
             modelBuilder.Entity("OutCom.Models.UserRole", b =>
@@ -462,13 +473,13 @@ namespace OutCom.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserRoles", (string)null);
+                    b.ToTable("UserRoles");
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 8, 23, 18, 45, 15, 262, DateTimeKind.Utc).AddTicks(4950),
+                            CreatedAt = new DateTime(2025, 8, 23, 15, 55, 19, 116, DateTimeKind.Utc).AddTicks(2778),
                             Description = "Acceso completo al sistema con permisos administrativos",
                             Name = "Administrador",
                             UserType = 1
@@ -476,7 +487,7 @@ namespace OutCom.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 8, 23, 18, 45, 15, 262, DateTimeKind.Utc).AddTicks(4962),
+                            CreatedAt = new DateTime(2025, 8, 23, 15, 55, 19, 116, DateTimeKind.Utc).AddTicks(2781),
                             Description = "Usuario estándar con acceso a funcionalidades básicas",
                             Name = "Cliente",
                             UserType = 0
@@ -511,7 +522,7 @@ namespace OutCom.Migrations
 
                     b.HasIndex("UserRoleId");
 
-                    b.ToTable("UserRoleAssignments", (string)null);
+                    b.ToTable("UserRoleAssignments");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -567,13 +578,27 @@ namespace OutCom.Migrations
 
             modelBuilder.Entity("OutCom.Models.FileItem", b =>
                 {
+                    b.HasOne("OutCom.Data.ApplicationUser", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("OutCom.Data.ApplicationUser", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("OutCom.Models.FileItem", "ParentFolder")
+                        .WithMany("ChildItems")
+                        .HasForeignKey("ParentFolderId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Client");
+
                     b.Navigation("Owner");
+
+                    b.Navigation("ParentFolder");
                 });
 
             modelBuilder.Entity("OutCom.Models.FileShare", b =>
@@ -587,13 +612,13 @@ namespace OutCom.Migrations
                     b.HasOne("OutCom.Data.ApplicationUser", "SharedByUser")
                         .WithMany()
                         .HasForeignKey("SharedByUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("OutCom.Data.ApplicationUser", "SharedWithUser")
                         .WithMany()
                         .HasForeignKey("SharedWithUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("FileItem");
@@ -627,6 +652,8 @@ namespace OutCom.Migrations
 
             modelBuilder.Entity("OutCom.Models.FileItem", b =>
                 {
+                    b.Navigation("ChildItems");
+
                     b.Navigation("FileShares");
                 });
 

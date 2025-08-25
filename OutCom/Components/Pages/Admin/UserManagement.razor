@@ -1,5 +1,6 @@
 @page "/admin/user-management"
-@layout AdminLayout
+@rendermode InteractiveServer
+
 @using Microsoft.AspNetCore.Authorization
 @using OutCom.Models
 @using OutCom.Services
@@ -17,7 +18,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>Gestión de Usuarios</h2>
                 <button class="btn btn-primary" @onclick="ShowCreateUserModal">
-                    <i class="fas fa-plus"></i> Crear Usuario
+                    <i class="fa fa-plus"></i> Crear Usuario
                 </button>
             </div>
 
@@ -79,22 +80,22 @@
                                             <td>@(user.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? "Nunca")</td>
                                             <td>
                                                 <div class="btn-group" role="group">
-                                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditUserModal(user)">
-                                                        <i class="fas fa-edit"></i>
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditUserModal(user)" title="Editar usuario">
+                                                        <i class="fa fa-edit"></i>
                                                     </button>
-                                                    <button class="btn btn-sm btn-outline-warning" @onclick="() => ShowChangePasswordModal(user)">
-                                                        <i class="fas fa-key"></i>
+                                                    <button type="button" class="btn btn-sm btn-outline-warning" @onclick="() => ShowChangePasswordModal(user)" title="Cambiar contraseña">
+                                                        <i class="fa fa-key"></i>
                                                     </button>
                                                     @if (user.IsActive)
                                                     {
-                                                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => DeactivateUser(user.Id)">
-                                                            <i class="fas fa-ban"></i>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateUser(user.Id)" title="Desactivar usuario">
+                                                            <i class="fa fa-ban"></i>
                                                         </button>
                                                     }
                                                     else
                                                     {
-                                                        <button class="btn btn-sm btn-outline-success" @onclick="() => ActivateUser(user.Id)">
-                                                            <i class="fas fa-check"></i>
+                                                        <button type="button" class="btn btn-sm btn-outline-success" @onclick="() => ActivateUser(user.Id)" title="Activar usuario">
+                                                            <i class="fa fa-check"></i>
                                                         </button>
                                                     }
                                                 </div>
@@ -117,7 +118,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Crear Nuevo Usuario</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal">x</button>
             </div>
             <EditForm Model="createUserModel" OnValidSubmit="CreateUser">
                 <DataAnnotationsValidator />
@@ -166,6 +167,56 @@
     </div>
 </div>
 
+<!-- Modal para editar usuario -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <EditForm Model="editUserModel" OnValidSubmit="UpdateUser">
+                <DataAnnotationsValidator />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <InputText class="form-control" @bind-Value="editUserModel.Email" />
+                        <ValidationMessage For="() => editUserModel.Email" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <InputText class="form-control" @bind-Value="editUserModel.FirstName" />
+                        <ValidationMessage For="() => editUserModel.FirstName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Apellido</label>
+                        <InputText class="form-control" @bind-Value="editUserModel.LastName" />
+                        <ValidationMessage For="() => editUserModel.LastName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Usuario</label>
+                        <InputSelect class="form-select" @bind-Value="editUserModel.UserType">
+                            <option value="@UserType.Client">Cliente</option>
+                            <option value="@UserType.Admin">Administrador</option>
+                        </InputSelect>
+                        <ValidationMessage For="() => editUserModel.UserType" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" disabled="@isProcessing">
+                        @if (isProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Actualizar Usuario
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
 <!-- Modal para cambiar contraseña -->
 <div class="modal fade" id="changePasswordModal" tabindex="-1">
     <div class="modal-dialog">
@@ -204,10 +255,52 @@
     </div>
 </div>
 
+<!-- Modal de confirmación para desactivar usuario -->
+<div class="modal fade" id="confirmDeactivateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Desactivación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @if (userToDeactivate != null)
+                {
+                    <div class="alert alert-warning">
+                        <i class="fa fa-exclamation-triangle me-2"></i>
+                        <strong>¿Está seguro de que desea desactivar este usuario?</strong>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Detalles del Usuario</h6>
+                            <p class="mb-1"><strong>ID:</strong> @userToDeactivate.Id</p>
+                            <p class="mb-1"><strong>Email:</strong> @userToDeactivate.Email</p>
+                            <p class="mb-1"><strong>Nombre:</strong> @($"{userToDeactivate.FirstName} {userToDeactivate.LastName}")</p>
+                            <p class="mb-0"><strong>Tipo:</strong> @userToDeactivate.UserType</p>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" @onclick="ConfirmDeactivateUser" disabled="@isProcessing">
+                    @if (isProcessing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="fa fa-ban me-1"></i> Desactivar Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @code {
     private List<ApplicationUser>? users;
     private ApplicationUser? selectedUser;
+    private ApplicationUser? userToDeactivate;
     private CreateUserModel createUserModel = new();
+    private EditUserModel editUserModel = new();
     private ChangePasswordModel changePasswordModel = new();
     private string statusMessage = string.Empty;
     private bool isError = false;
@@ -224,7 +317,7 @@
         try
         {
             users = (await UserManagementService.GetAllUsersAsync()).ToList();
-            
+
             // Obtener el usuario actual
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             currentUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
@@ -239,8 +332,7 @@
     private async Task ShowCreateUserModal()
     {
         createUserModel = new CreateUserModel();
-        await JSRuntime.InvokeVoidAsync("bootstrap.Modal.getOrCreateInstance", "#createUserModal").AsTask();
-        await JSRuntime.InvokeVoidAsync("bootstrap.Modal.getInstance", "#createUserModal").AsTask();
+        statusMessage = string.Empty;
         await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('createUserModal')).show()");
     }
 
@@ -248,12 +340,23 @@
     {
         selectedUser = user;
         changePasswordModel = new ChangePasswordModel();
+        statusMessage = string.Empty;
         await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('changePasswordModal')).show()");
     }
 
     private async Task ShowEditUserModal(ApplicationUser user)
     {
-        // Implementar edición de usuario si es necesario
+        selectedUser = user;
+        editUserModel = new EditUserModel
+        {
+            UserId = user.Id,
+            Email = user.Email ?? string.Empty,
+            FirstName = user.FirstName ?? string.Empty,
+            LastName = user.LastName ?? string.Empty,
+            UserType = user.UserType
+        };
+        statusMessage = string.Empty;
+        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('editUserModal')).show()");
     }
 
     private async Task CreateUser()
@@ -326,16 +429,69 @@
         }
     }
 
-    private async Task DeactivateUser(string userId)
+    private async Task UpdateUser()
     {
+        if (selectedUser == null) return;
+
         try
         {
-            var result = await UserManagementService.DeactivateUserAsync(userId, currentUserId);
+            isProcessing = true;
+            // Actualizar los datos del usuario seleccionado
+            selectedUser.Email = editUserModel.Email;
+            selectedUser.FirstName = editUserModel.FirstName;
+            selectedUser.LastName = editUserModel.LastName;
+            selectedUser.UserType = editUserModel.UserType;
+            selectedUser.UserName = editUserModel.Email; // Mantener sincronizado con el email
+
+            var result = await UserManagementService.UpdateUserAsync(selectedUser, currentUserId);
+
+            if (result.Succeeded)
+            {
+                statusMessage = "Usuario actualizado exitosamente.";
+                isError = false;
+                await LoadUsers();
+                await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide()");
+            }
+            else
+            {
+                statusMessage = $"Error al actualizar usuario: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ShowDeactivateConfirmation(string userId)
+    {
+        userToDeactivate = users?.FirstOrDefault(u => u.Id == userId);
+        if (userToDeactivate != null)
+        {
+            await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('confirmDeactivateModal')).show()");
+        }
+    }
+
+    private async Task ConfirmDeactivateUser()
+    {
+        if (userToDeactivate == null) return;
+
+        try
+        {
+            isProcessing = true;
+            var result = await UserManagementService.DeactivateUserAsync(userToDeactivate.Id, currentUserId);
             if (result.Succeeded)
             {
                 statusMessage = "Usuario desactivado exitosamente.";
                 isError = false;
                 await LoadUsers();
+                await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('confirmDeactivateModal')).hide()");
             }
             else
             {
@@ -348,6 +504,16 @@
             statusMessage = $"Error: {ex.Message}";
             isError = true;
         }
+        finally
+        {
+            isProcessing = false;
+            userToDeactivate = null;
+        }
+    }
+
+    private async Task DeactivateUser(string userId)
+    {
+        await ShowDeactivateConfirmation(userId);
     }
 
     private async Task ActivateUser(string userId)
@@ -394,14 +560,36 @@
         public UserType UserType { get; set; } = UserType.Client;
     }
 
+    public class EditUserModel
+    {
+        [Required(ErrorMessage = "El ID del usuario es requerido.")]
+        public string UserId { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El email es requerido.")]
+        [EmailAddress(ErrorMessage = "El formato del email no es válido.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El nombre es requerido.")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El apellido es requerido.")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El tipo de usuario es requerido.")]
+        public UserType UserType { get; set; }
+    }
+
     public class ChangePasswordModel
     {
-        [Required(ErrorMessage = "La nueva contraseña es requerida")]
+        [Required(ErrorMessage = "El ID del usuario es requerido.")]
+        public string UserId { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La nueva contraseña es requerida.")]
         [StringLength(100, ErrorMessage = "La contraseña debe tener al menos {2} caracteres.", MinimumLength = 6)]
         public string NewPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Confirmar contraseña es requerido")]
-        [Compare(nameof(NewPassword), ErrorMessage = "Las contraseñas no coinciden")]
+        [Required(ErrorMessage = "La confirmación de contraseña es requerida.")]
+        [Compare("NewPassword", ErrorMessage = "Las contraseñas no coinciden.")]
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 }

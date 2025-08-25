@@ -45,6 +45,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<IDataSeederService, DataSeederService>();
+builder.Services.AddScoped<IFileManagerService, FileManagerService>();
 
 var app = builder.Build();
 

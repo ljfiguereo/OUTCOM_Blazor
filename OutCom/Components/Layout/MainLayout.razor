@@ -1,4 +1,8 @@
-﻿@inherits LayoutComponentBase
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <!-- GLOBAL-LOADER -->
 @*<div id="global-loader">
@@ -12,9 +16,9 @@
         <NavHeader />
 
         <NavMenu />
-
+        <div class="jumps-prevent" style="padding-top: 74px;"></div>
         <!--app-content open-->
-        <div class="main-content app-content mt-0">
+        <div class="main-content app-content mt-5">
             <div class="side-app">
 
                 <!-- CONTAINER -->
@@ -153,4 +157,21 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    private AuthenticationState? authenticationState;
+    private bool isAdmin = false;
+    private bool isAuthenticated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isAuthenticated = authenticationState.User.Identity?.IsAuthenticated ?? false;
+        
+        if (isAuthenticated)
+        {
+            isAdmin = authenticationState.User.IsInRole("Admin");
+        }
+    }
+}
 

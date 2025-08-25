@@ -23110,7 +23110,7 @@ div.dtr-bs-modal table.table tr:first-child td {
 
 /* sidebar settings */
 .sidebar {
-    position: fixed;
+    /*position: fixed;*/
     display: block;
     inset-block-start: 0;
     width: 300px;

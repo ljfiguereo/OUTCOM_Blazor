@@ -51639,7 +51639,7 @@ body.transparent-mode *:hover::-webkit-scrollbar-thumb {
     -webkit-transition: margin-inline-start 450ms ease;
     -o-transition: margin-inline-start 450ms ease;
     transition: margin-inline-start 450ms ease;
-    overflow: clip;
+    overflow: auto;
     margin-block-start: 74px;
 }
 
