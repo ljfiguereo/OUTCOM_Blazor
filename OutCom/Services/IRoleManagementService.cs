@@ -17,5 +17,10 @@ namespace OutCom.Services
         Task<IEnumerable<UserRoleAssignment>> GetAllUserRoleAssignmentsAsync();
         Task<IEnumerable<string>> GetUserPermissionsAsync(string userId);
         Task<bool> HasPermissionAsync(string userId, string permission);
+        
+        // Nuevos métodos para trabajar con AspNetUserRoles (Identity)
+        Task<IEnumerable<IdentityUserRoleDto>> GetAllIdentityUserRoleAssignmentsAsync();
+        Task<IEnumerable<IdentityUserRoleDto>> GetIdentityUserRoleAssignmentsAsync(string userId);
+        Task<IEnumerable<IdentityRole>> GetAllIdentityRolesAsync();
     }
 }

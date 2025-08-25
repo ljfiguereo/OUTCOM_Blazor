@@ -1,17 +1,22 @@
 using OutCom.Data;
 using OutCom.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace OutCom.Services
 {
     public class RoleManagementService : IRoleManagementService
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IAuditService _auditService;
 
-        public RoleManagementService(ApplicationDbContext context, IAuditService auditService)
+        public RoleManagementService(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IAuditService auditService)
         {
             _context = context;
+            _userManager = userManager;
+            _roleManager = roleManager;
             _auditService = auditService;
         }
 
@@ -223,8 +228,81 @@ namespace OutCom.Services
 
         public async Task<bool> HasPermissionAsync(string userId, string permission)
         {
-            var permissions = await GetUserPermissionsAsync(userId);
-            return permissions.Contains(permission);
+            var userPermissions = await GetUserPermissionsAsync(userId);
+            return userPermissions.Contains(permission);
+        }
+
+        // Nuevos métodos para trabajar con AspNetUserRoles (Identity)
+        public async Task<IEnumerable<IdentityUserRoleDto>> GetAllIdentityUserRoleAssignmentsAsync()
+        {
+            var userRoles = new List<IdentityUserRoleDto>();
+            
+            var users = await _userManager.Users.ToListAsync();
+            
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                
+                foreach (var roleName in roles)
+                {
+                    var role = await _roleManager.FindByNameAsync(roleName);
+                    if (role != null)
+                    {
+                        userRoles.Add(new IdentityUserRoleDto
+                        {
+                            UserId = user.Id,
+                            RoleId = role.Id,
+                            RoleName = role.Name ?? string.Empty,
+                            UserEmail = user.Email ?? string.Empty,
+                            UserFirstName = user.FirstName,
+                            UserLastName = user.LastName,
+                            UserType = user.UserType,
+                            User = user,
+                            Role = role
+                        });
+                    }
+                }
+            }
+            
+            return userRoles;
+        }
+
+        public async Task<IEnumerable<IdentityUserRoleDto>> GetIdentityUserRoleAssignmentsAsync(string userId)
+        {
+            var userRoles = new List<IdentityUserRoleDto>();
+            
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return userRoles;
+            
+            var roles = await _userManager.GetRolesAsync(user);
+            
+            foreach (var roleName in roles)
+            {
+                var role = await _roleManager.FindByNameAsync(roleName);
+                if (role != null)
+                {
+                    userRoles.Add(new IdentityUserRoleDto
+                    {
+                        UserId = user.Id,
+                        RoleId = role.Id,
+                        RoleName = role.Name ?? string.Empty,
+                        UserEmail = user.Email ?? string.Empty,
+                        UserFirstName = user.FirstName,
+                        UserLastName = user.LastName,
+                        UserType = user.UserType,
+                        User = user,
+                        Role = role
+                    });
+                }
+            }
+            
+            return userRoles;
+        }
+
+        public async Task<IEnumerable<IdentityRole>> GetAllIdentityRolesAsync()
+        {
+            return await _roleManager.Roles.ToListAsync();
         }
     }
 }

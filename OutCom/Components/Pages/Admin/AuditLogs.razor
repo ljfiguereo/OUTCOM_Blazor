@@ -15,10 +15,10 @@
                 <h2>Logs de Auditoría</h2>
                 <div class="d-flex gap-2">
                     <button class="btn btn-outline-secondary" @onclick="LoadRecentLogs">
-                        <i class="fas fa-refresh"></i> Actualizar
+                        <i class="fa fa-refresh"></i> Actualizar
                     </button>
                     <button class="btn btn-outline-danger" @onclick="ShowCleanupModal">
-                        <i class="fas fa-trash"></i> Limpiar Logs Antiguos
+                        <i class="fa fa-trash"></i> Limpiar Logs Antiguos
                     </button>
                 </div>
             </div>
@@ -64,10 +64,10 @@
                     <div class="row mt-3">
                         <div class="col-12">
                             <button class="btn btn-primary" @onclick="ApplyFilters">
-                                <i class="fas fa-search"></i> Buscar
+                                <i class="fa fa-search"></i> Buscar
                             </button>
                             <button class="btn btn-outline-secondary ms-2" @onclick="ClearFilters">
-                                <i class="fas fa-times"></i> Limpiar Filtros
+                                <i class="fa fa-times"></i> Limpiar Filtros
                             </button>
                         </div>
                     </div>
@@ -162,7 +162,7 @@
                                                 @if (!string.IsNullOrEmpty(log.AdditionalData) || !string.IsNullOrEmpty(log.ErrorMessage))
                                                 {
                                                     <button class="btn btn-sm btn-outline-info" @onclick="() => ShowLogDetails(log)">
-                                                        <i class="fas fa-info-circle"></i>
+                                                        <i class="fa fa-info-circle"></i>
                                                     </button>
                                                 }
                                             </td>
@@ -266,7 +266,7 @@
                     <input type="date" class="form-control" @bind="cleanupDate" />
                 </div>
                 <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
+                    <i class="fa fa-exclamation-triangle"></i>
                     Esta acción no se puede deshacer.
                 </div>
             </div>

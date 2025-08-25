@@ -1,242 +1,189 @@
 @page "/admin/role-management"
+@*@rendermode InteractiveServer*@
 @using Microsoft.AspNetCore.Authorization
 @using OutCom.Models
 @using OutCom.Services
+@using OutCom.Data
+@using Microsoft.AspNetCore.Identity
 @inject IRoleManagementService RoleManagementService
 @inject IUserManagementService UserManagementService
-@inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
 @attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>Gestión de Roles</PageTitle>
+<PageTitle>Visualización de Roles</PageTitle>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Gestión de Roles</h2>
-                <button class="btn btn-primary" @onclick="ShowCreateRoleModal">
-                    <i class="fas fa-plus"></i> Crear Rol
-                </button>
+                <div>
+                    <h2 class="mb-1">Visualización de Roles</h2>
+                    <p class="text-muted mb-0">Consulta los roles del sistema y sus asignaciones</p>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-info me-2">Solo Lectura</span>
+                    <i class="fa fa-eye fa-2x text-primary"></i>
+                </div>
             </div>
 
-            @if (!string.IsNullOrEmpty(statusMessage))
+            @if (!string.IsNullOrEmpty(errorMessage))
             {
-                <div class="alert @(isError ? "alert-danger" : "alert-success") alert-dismissible fade show" role="alert">
-                    @statusMessage
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <div class="alert alert-danger d-flex align-items-center mb-4">
+                    <i class="fa fa-exclamation-triangle me-2"></i>
+                    <span>@errorMessage</span>
                 </div>
             }
 
-            <div class="row">
-                <!-- Lista de Roles -->
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="fe fe-users me-2"></i>Lista de Roles
-                            </h5>
+            @if (isLoading)
+            {
+                <div class="d-flex justify-content-center align-items-center py-5">
+                    <div class="spinner-border text-primary me-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="text-muted">Cargando información de roles...</span>
+                </div>
+            }
+            else
+            {
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-4">
+                            <i class="fa fa-tags text-primary fs-4 me-3"></i>
+                            <h2 class="card-title mb-0">Roles de Identity</h2>
                         </div>
-                        <div class="card-body">
-                            @if (roles == null)
-                            {
-                                <div class="text-center">
-                                    <div class="spinner-border" role="status">
-                                        <span class="visually-hidden">Cargando...</span>
-                                    </div>
-                                </div>
-                            }
-                            else if (!roles.Any())
-                            {
-                                <p class="text-muted">No hay roles configurados.</p>
-                            }
-                            else
-                            {
-                                <div class="list-group">
-                                    @foreach (var role in roles)
-                                    {
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1">@role.Name</h6>
-                                                <p class="mb-1 text-muted">@role.Description</p>
-                                                <small class="text-muted">
-                                                    Tipo: <span class="badge @(role.UserType == UserType.Admin ? "bg-danger" : "bg-primary")">@role.UserType</span>
-                                                </small>
+                        
+                        @if (identityRoles != null && identityRoles.Any())
+                        {
+                            <div class="row">
+                                @foreach (var role in identityRoles)
+                                {
+                                    var assignments = GetAssignmentsForRole(role.Id);
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card border">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="@GetRoleIcon(role.Name ?? "") text-primary me-2"></i>
+                                                        <h5 class="card-title mb-0">@role.Name</h5>
+                                                    </div>
+                                                    <span class="badge @GetRoleColor(role.Name ?? "")">
+                                                        @assignments.Count usuarios
+                                                    </span>
+                                                </div>
+                                                
+                                                <div class="d-flex align-items-center justify-content-between small text-muted">
+                                                    <span>Rol de Identity</span>
+                                                    <span>ID: @role.Id</span>
+                                                </div>
                                             </div>
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditRoleModal(role)">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-info" @onclick="() => ShowAssignRoleModal(role)">
-                                                    <i class="fas fa-users"></i>
-                                                </button>
-                                                @if (role.UserType != UserType.Admin) // No permitir eliminar roles de admin
-                                                {
-                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRole(role.Id)">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="fa fa-tags text-muted display-4 mb-3"></i>
+                                <p class="text-muted">No se encontraron roles de Identity en el sistema</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Sección de Asignaciones de Roles -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-4">
+                            <i class="fa fa-users text-success fs-4 me-3"></i>
+                            <h2 class="card-title mb-0">Asignaciones de Roles de Identity</h2>
+                        </div>
+                        
+                        @if (identityUserRoleAssignments != null && identityUserRoleAssignments.Any())
+                        {
+                            <!-- Resumen por rol -->
+                            <div class="mb-4">
+                                <h3 class="h5 mb-3">Resumen por Rol</h3>
+                                <div class="row">
+                                    @foreach (var roleGroup in identityUserRoleAssignments.GroupBy(x => x.RoleName))
+                                    {
+                                        <div class="col-md-6 col-lg-4 mb-3">
+                                            <div class="card border @GetRoleColor(roleGroup.Key)">
+                                                <div class="card-body p-3">
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="@GetRoleIcon(roleGroup.Key) me-2"></i>
+                                                            <span class="fw-medium">@roleGroup.Key</span>
+                                                        </div>
+                                                        <span class="fw-bold">@roleGroup.Count()</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     }
                                 </div>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Asignaciones de Roles -->
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Asignaciones de Roles</h5>
-                        </div>
-                        <div class="card-body">
-                            @if (roleAssignments == null)
-                            {
-                                <div class="text-center">
-                                    <div class="spinner-border" role="status">
-                                        <span class="visually-hidden">Cargando...</span>
-                                    </div>
+                            </div>
+                            
+                            <hr class="my-4">
+                            
+                            <!-- Lista detallada de asignaciones -->
+                            <div>
+                                <h3 class="h5 mb-3">Asignaciones Detalladas</h3>
+                                <div class="list-group">
+                                    @foreach (var assignment in identityUserRoleAssignments.Take(20))
+                                    {
+                                        <div class="list-group-item d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <i class="@GetUserTypeIcon(assignment.UserType) @GetUserTypeColor(assignment.UserType.ToString()) fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-medium">
+                                                        @assignment.UserFirstName @assignment.UserLastName
+                                                    </div>
+                                                    <div class="small text-muted">@assignment.UserEmail</div>
+                                                    <div class="small text-muted">Tipo: @assignment.UserType</div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span class="badge @GetRoleColor(assignment.RoleName)">
+                                                    <i class="@GetRoleIcon(assignment.RoleName) me-1"></i>
+                                                    @assignment.RoleName
+                                                </span>
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
-                            }
-                            else if (!roleAssignments.Any())
-                            {
-                                <p class="text-muted">No hay asignaciones de roles.</p>
-                            }
-                            else
-                            {
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Usuario</th>
-                                                <th>Rol</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var assignment in roleAssignments)
-                                            {
-                                                <tr>
-                                                    <td>@GetUserEmail(assignment.UserId)</td>
-                                                    <td>@assignment.UserRole?.Name</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveRoleAssignment(assignment.Id)">
-                                                            <i class="fas fa-times"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para crear rol -->
-<div class="modal fade" id="createRoleModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Crear Nuevo Rol</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <EditForm Model="createRoleModel" OnValidSubmit="CreateRole">
-                <DataAnnotationsValidator />
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Nombre del Rol</label>
-                        <InputText class="form-control" @bind-Value="createRoleModel.Name" />
-                        <ValidationMessage For="() => createRoleModel.Name" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Descripción</label>
-                        <InputTextArea class="form-control" @bind-Value="createRoleModel.Description" rows="3" />
-                        <ValidationMessage For="() => createRoleModel.Description" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tipo de Usuario</label>
-                        <InputSelect class="form-select" @bind-Value="createRoleModel.UserType">
-                            <option value="@UserType.Client">Cliente</option>
-                            <option value="@UserType.Admin">Administrador</option>
-                        </InputSelect>
-                        <ValidationMessage For="() => createRoleModel.UserType" />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" disabled="@isProcessing">
-                        @if (isProcessing)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2"></span>
-                        }
-                        Crear Rol
-                    </button>
-                </div>
-            </EditForm>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para asignar rol -->
-<div class="modal fade" id="assignRoleModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Asignar Rol: @selectedRole?.Name</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <EditForm Model="assignRoleModel" OnValidSubmit="AssignRole">
-                <DataAnnotationsValidator />
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Seleccionar Usuario</label>
-                        <InputSelect class="form-select" @bind-Value="assignRoleModel.UserId">
-                            <option value="">-- Seleccionar Usuario --</option>
-                            @if (users != null)
-                            {
-                                @foreach (var user in users.Where(u => u.UserType == selectedRole?.UserType))
+                                
+                                @if (identityUserRoleAssignments.Count > 20)
                                 {
-                                    <option value="@user.Id">@user.Email (@user.FirstName @user.LastName)</option>
+                                    <div class="alert alert-info text-center mt-3">
+                                        <i class="fa fa-info-circle me-1"></i>
+                                        Mostrando 20 de @identityUserRoleAssignments.Count asignaciones totales
+                                    </div>
                                 }
-                            }
-                        </InputSelect>
-                        <ValidationMessage For="() => assignRoleModel.UserId" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="fa fa-users text-muted display-4 mb-3"></i>
+                                <p class="text-muted">No se encontraron asignaciones de roles de Identity</p>
+                            </div>
+                        }
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" disabled="@isProcessing">
-                        @if (isProcessing)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2"></span>
-                        }
-                        Asignar Rol
-                    </button>
-                </div>
-            </EditForm>
+            }
         </div>
     </div>
 </div>
 
 @code {
-    private List<UserRole>? roles;
-    private List<UserRoleAssignment>? roleAssignments;
-    private List<ApplicationUser>? users;
-    private UserRole? selectedRole;
-    private CreateRoleModel createRoleModel = new();
-    private AssignRoleModel assignRoleModel = new();
-    private string statusMessage = string.Empty;
-    private bool isError = false;
-    private bool isProcessing = false;
-    private string currentUserId = string.Empty;
+    private List<IdentityRole> identityRoles = new();
+    private List<IdentityUserRoleDto> identityUserRoleAssignments = new();
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -247,188 +194,68 @@
     {
         try
         {
-            roles = (await RoleManagementService.GetAllUserRolesAsync()).ToList();
-            users = (await UserManagementService.GetAllUsersAsync()).ToList();
-            roleAssignments = (await RoleManagementService.GetAllUserRoleAssignmentsAsync()).ToList();
-            
-            // Obtener el usuario actual
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            currentUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            identityRoles = (await RoleManagementService.GetAllIdentityRolesAsync()).ToList();
+            identityUserRoleAssignments = (await RoleManagementService.GetAllIdentityUserRoleAssignmentsAsync()).ToList();
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error al cargar datos: {ex.Message}";
-            isError = true;
-        }
-    }
-
-    private async Task ShowCreateRoleModal()
-    {
-        createRoleModel = new CreateRoleModel();
-        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('createRoleModal')).show()");
-    }
-
-    private async Task ShowEditRoleModal(UserRole role)
-    {
-        // Implementar edición de rol si es necesario
-    }
-
-    private async Task ShowAssignRoleModal(UserRole role)
-    {
-        selectedRole = role;
-        assignRoleModel = new AssignRoleModel { RoleId = role.Id };
-        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('assignRoleModal')).show()");
-    }
-
-    private async Task CreateRole()
-    {
-        try
-        {
-            isProcessing = true;
-            var result = await RoleManagementService.CreateUserRoleAsync(
-                createRoleModel.Name,
-                createRoleModel.Description,
-                createRoleModel.UserType,
-                currentUserId
-            );
-
-            if (result)
-            {
-                statusMessage = "Rol creado exitosamente.";
-                isError = false;
-                await LoadData();
-                await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('createRoleModal')).hide()");
-            }
-            else
-            {
-                statusMessage = "Error al crear rol";
-                isError = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Error: {ex.Message}";
-            isError = true;
+            errorMessage = $"Error al cargar los datos: {ex.Message}";
         }
         finally
         {
-            isProcessing = false;
+            isLoading = false;
         }
     }
 
-    private async Task AssignRole()
+    private List<IdentityUserRoleDto> GetAssignmentsForRole(string roleId)
     {
-        try
-        {
-            isProcessing = true;
-            var result = await RoleManagementService.AssignRoleToUserAsync(assignRoleModel.UserId, assignRoleModel.RoleId, currentUserId);
-
-            if (result)
-            {
-                statusMessage = "Rol asignado exitosamente.";
-                isError = false;
-                await LoadData();
-                await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('assignRoleModal')).hide()");
-            }
-            else
-            {
-                statusMessage = "Error al asignar rol";
-                isError = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Error: {ex.Message}";
-            isError = true;
-        }
-        finally
-        {
-            isProcessing = false;
-        }
+        return identityUserRoleAssignments.Where(ura => ura.RoleId == roleId).ToList();
     }
 
-    private async Task DeleteRole(int roleId)
+    private string GetUserTypeIcon(UserType userType)
     {
-        try
+        return userType switch
         {
-            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "¿Está seguro de que desea eliminar este rol?");
-            if (!confirmed) return;
-
-            var result = await RoleManagementService.DeleteUserRoleAsync(roleId, currentUserId);
-            if (result)
-            {
-                statusMessage = "Rol eliminado exitosamente.";
-                isError = false;
-                await LoadData();
-            }
-            else
-            {
-                statusMessage = "Error al eliminar rol";
-                isError = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Error: {ex.Message}";
-            isError = true;
-        }
+            UserType.Admin => "fa fa-user-shield",
+            UserType.Client => "fa fa-user",
+            _ => "fa fa-user-circle"
+        };
     }
 
-    private async Task RemoveRoleAssignment(int assignmentId)
+    private string GetUserTypeColor(string userType)
     {
-        try
+        return userType?.ToLower() switch
         {
-            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "¿Está seguro de que desea remover esta asignación de rol?");
-            if (!confirmed) return;
+            "admin" => "text-danger",
+            "client" => "text-success",
+            _ => "text-secondary"
+        };
+    }
 
-            var assignment = roleAssignments?.FirstOrDefault(a => a.Id == assignmentId);
-            if (assignment != null)
-            {
-                var result = await RoleManagementService.RemoveRoleFromUserAsync(assignment.UserId, assignment.UserRoleId, currentUserId);
-                if (result)
-                {
-                    statusMessage = "Asignación de rol removida exitosamente.";
-                    isError = false;
-                    await LoadData();
-                }
-                else
-                {
-                    statusMessage = "Error al remover asignación";
-                    isError = true;
-                }
-            }
-        }
-        catch (Exception ex)
+    private string GetRoleIcon(string roleName)
+    {
+        return roleName.ToLower() switch
         {
-            statusMessage = $"Error: {ex.Message}";
-            isError = true;
-        }
+            "admin" or "administrador" => "fa fa-crown",
+            "manager" or "gerente" => "fa fa-briefcase",
+            "employee" or "empleado" => "fa fa-user-tie",
+            "customer" or "cliente" => "fa fa-user",
+            _ => "fa fa-tag"
+        };
     }
 
-    private string GetUserEmail(string userId)
+    private string GetRoleColor(string roleName)
     {
-        var user = users?.FirstOrDefault(u => u.Id == userId);
-        return user?.Email ?? "Usuario no encontrado";
-    }
-
-    public class CreateRoleModel
-    {
-        [Required(ErrorMessage = "El nombre del rol es requerido")]
-        public string Name { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "La descripción es requerida")]
-        public string Description { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "El tipo de usuario es requerido")]
-        public UserType UserType { get; set; } = UserType.Client;
-    }
-
-    public class AssignRoleModel
-    {
-        [Required(ErrorMessage = "Debe seleccionar un usuario")]
-        public string UserId { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Debe seleccionar un rol")]
-        public int RoleId { get; set; }
+        return roleName?.ToLower() switch
+        {
+            "admin" or "administrator" => "bg-danger text-white",
+            "manager" or "supervisor" => "bg-warning text-dark",
+            "user" or "employee" => "bg-primary text-white",
+            "guest" or "visitor" => "bg-secondary text-white",
+            _ => "bg-info text-white"
+        };
     }
 }
