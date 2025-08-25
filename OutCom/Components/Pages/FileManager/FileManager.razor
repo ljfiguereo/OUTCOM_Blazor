@@ -86,7 +86,7 @@
     <!-- Área principal con sidebar y contenido -->
     <div class="main-area">
         <!-- Sidebar izquierdo - Árbol de directorios -->
-        <div class="sidebar">
+        <div class="sidebar" style="z-index:0">
             <div class="sidebar-header">
                 <h6><i class="fe fe-folder"></i> Directorios</h6>
             </div>
@@ -322,7 +322,7 @@
                 </div>
                 <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                     <!-- Configuración masiva al inicio -->
-                    <div class="mass-config-section mb-4 p-3 bg-light rounded border">
+                    <div class="mass-config-section mb-4 p-3 bg-light border">
                         <h6 class="mb-3"><i class="fe fe-settings text-primary"></i> Configuración Masiva</h6>
                         <div class="row g-3">
                             <div class="col-md-4">
@@ -352,7 +352,7 @@
                     <div class="upload-config-container">
                         @foreach (var (fileConfig, index) in pendingFileConfigs.Select((config, i) => (config, i)))
                         {
-                            <div class="file-config-item mb-3 p-3 border rounded @(string.IsNullOrWhiteSpace(fileConfig.Title) ? "border-danger" : "border-success")">
+                            <div class="file-config-item mb-3 p-3 border @(string.IsNullOrWhiteSpace(fileConfig.Title) ? "border-danger" : "border-success")">
                                 <div class="d-flex align-items-center justify-content-between mb-3">
                                     <div class="d-flex align-items-center">
                                         <span class="badge bg-secondary me-2">@(index + 1)</span>
@@ -412,7 +412,7 @@
                     </div>
                     
                     <!-- Resumen de configuración -->
-                    <div class="config-summary mt-4 p-3 bg-info bg-opacity-10 rounded border border-info">
+                    <div class="config-summary mt-4 p-3 bg-azure-lightest bg-opacity-10 border border-info">
                         <h6 class="text-info"><i class="fe fe-info"></i> Resumen de Configuración</h6>
                         <div class="row">
                             <div class="col-md-4">
@@ -515,7 +515,7 @@
                             }
                         </div>
                         
-                        <div class="file-info-section p-3 bg-light rounded">
+                        <div class="file-info-section p-3 bg-azure-lightest">
                             <h6><i class="fe fe-info"></i> Información del archivo</h6>
                             <div class="row">
                                 <div class="col-6">
@@ -570,7 +570,7 @@
                         
                         @if (massEditExpirationDate.HasValue)
                         {
-                            <div class="expiration-preview p-3 bg-light rounded mb-3">
+                            <div class="expiration-preview p-3 bg-light mb-3">
                                 <h6><i class="fe fe-clock"></i> Vista previa</h6>
                                 <p class="mb-1">
                                     <strong>Fecha de expiración:</strong> @massEditExpirationDate.Value.ToString("dd/MM/yyyy HH:mm")
