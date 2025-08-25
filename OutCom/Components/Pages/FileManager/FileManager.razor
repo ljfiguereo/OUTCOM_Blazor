@@ -1,4 +1,5 @@
 ﻿@page "/file-manager"
+@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using OutCom.Data
@@ -37,46 +38,46 @@
                 </ol>
             </nav>
         </div>
-        
+
         <!-- Botones de acción -->
         <div class="toolbar-actions">
             <button class="btn btn-primary btn-sm" @onclick="ShowCreateFolderModal" title="Nueva Carpeta">
                 <i class="fe fe-folder-plus"></i> Nueva Carpeta
             </button>
-            
+
             <label class="btn btn-success btn-sm" title="Subir Archivos">
                 <i class="fe fe-upload"></i> Subir
                 <InputFile OnChange="HandleMultipleFilesSelected" multiple style="display: none;" />
             </label>
-            
-            <button class="btn btn-danger btn-sm" @onclick="DeleteSelectedItems" 
+
+            <button class="btn btn-danger btn-sm" @onclick="DeleteSelectedItems"
                     disabled="@(!HasSelectedItems)" title="Eliminar Seleccionados">
                 <i class="fe fe-trash-2"></i> Eliminar
             </button>
-            
-            <button class="btn btn-info btn-sm" @onclick="ShareSelectedItems" 
+
+            <button class="btn btn-info btn-sm" @onclick="ShareSelectedItems"
                     disabled="@(!HasSelectedItems)" title="Compartir Seleccionados">
                 <i class="fe fe-share-2"></i> Compartir
             </button>
-            
+
             <!-- Selector de vista -->
             <div class="btn-group ms-2" role="group">
-                <button class="btn btn-outline-secondary btn-sm @(viewMode == "grid" ? "active" : "")" 
+                <button class="btn btn-outline-secondary btn-sm @(viewMode == "grid" ? "active" : "")"
                         @onclick="@(() => SetViewMode("grid"))" title="Vista de Iconos">
                     <i class="fe fe-grid"></i>
                 </button>
-                <button class="btn btn-outline-secondary btn-sm @(viewMode == "list" ? "active" : "")" 
+                <button class="btn btn-outline-secondary btn-sm @(viewMode == "list" ? "active" : "")"
                         @onclick="@(() => SetViewMode("list"))" title="Vista de Lista">
                     <i class="fe fe-list"></i>
                 </button>
-                <button class="btn btn-outline-secondary btn-sm @(viewMode == "details" ? "active" : "")" 
+                <button class="btn btn-outline-secondary btn-sm @(viewMode == "details" ? "active" : "")"
                         @onclick="@(() => SetViewMode("details"))" title="Vista Detallada">
                     <i class="fe fe-menu"></i>
                 </button>
             </div>
         </div>
     </div>
-    
+
     <!-- Área principal con sidebar y contenido -->
     <div class="main-area">
         <!-- Sidebar izquierdo - Árbol de directorios -->
@@ -88,7 +89,7 @@
                 @RenderDirectoryTree(directoryStructure)
             </div>
         </div>
-        
+
         <!-- Panel principal de contenido -->
         <div class="content-panel" @ondrop="OnDrop" @ondragover="OnDragOver" @ondragenter="OnDragEnter" @ondragleave="OnDragLeave">
             <!-- Área de arrastrar y soltar -->
@@ -100,7 +101,7 @@
                         <span>Subiendo archivos...</span>
                     </div>
                 }
-                
+
                 @if (!string.IsNullOrEmpty(statusMessage))
                 {
                     <div class="alert alert-info alert-dismissible">
@@ -108,20 +109,20 @@
                         <button type="button" class="btn-close" @onclick="() => statusMessage = null"></button>
                     </div>
                 }
-                
+
                 <!-- Selector de todos -->
                 @if (currentItems.Any())
                 {
                     <div class="select-all-bar">
                         <label class="form-check">
-                            <input type="checkbox" class="form-check-input" 
-                                   checked="@isAllSelected" 
+                            <input type="checkbox" class="form-check-input"
+                                   checked="@isAllSelected"
                                    @onchange="ToggleSelectAll" />
                             <span class="form-check-label">Seleccionar todo (@selectedItems.Count de @currentItems.Count)</span>
                         </label>
                     </div>
                 }
-                
+
                 <!-- Contenido de archivos según el modo de vista -->
                 <div class="file-content @viewMode-view">
                     @if (viewMode == "grid")
@@ -133,7 +134,7 @@
                         @RenderFileListItems()
                     }
                 </div>
-                
+
                 @if (!currentItems.Any())
                 {
                     <div class="empty-folder">
@@ -192,7 +193,7 @@
                     {
                         <p>Generar enlaces para @selectedItems.Count elementos seleccionados</p>
                     }
-                    
+
                     @if (string.IsNullOrEmpty(generatedShareLink))
                     {
                         <button class="btn btn-primary" @onclick="GenerateShareLink">Generar Enlace</button>
@@ -228,22 +229,22 @@
     private bool isUploading = false;
     private bool isDragOver = false;
     private string? statusMessage;
-    
+
     // Colecciones de datos
     private List<FileSystemItem> currentItems = new();
     private List<FileSystemItem> selectedItems = new();
     private List<DirectoryItem> directoryStructure = new();
-    
+
     // Estados de modales
     private bool showShareModal = false;
     private bool showCreateFolderModal = false;
     private string newFolderName = "";
     private string generatedShareLink = "";
-    
+
     // Propiedades calculadas
     private bool HasSelectedItems => selectedItems.Any();
     private bool isAllSelected => currentItems.Any() && selectedItems.Count == currentItems.Count;
-    
+
     // Clases auxiliares
     public class FileSystemItem
     {
@@ -255,7 +256,7 @@
         public string Extension { get; set; } = "";
         public DateTime LastModified { get; set; }
     }
-    
+
     public class DirectoryItem
     {
         public string Name { get; set; } = "";
@@ -263,29 +264,29 @@
         public bool IsExpanded { get; set; }
         public List<DirectoryItem> Children { get; set; } = new();
     }
-    
+
     public class BreadcrumbItem
     {
         public string Name { get; set; } = "";
         public string Path { get; set; } = "";
     }
-    
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (!string.IsNullOrEmpty(userId))
         {
             await LoadCurrentDirectory();
             await LoadDirectoryStructure();
         }
     }
-    
+
     private async Task LoadCurrentDirectory()
     {
         if (string.IsNullOrEmpty(userId)) return;
-        
+
         try
         {
             var files = await fileManagerService.GetUserFilesAsync(userId, currentPath);
@@ -299,7 +300,7 @@
                 Extension = Path.GetExtension(f.Name) ?? "",
                 LastModified = f.ModifiedAt
             }).ToList();
-            
+
             selectedItems.Clear();
             StateHasChanged();
         }
@@ -308,16 +309,16 @@
             statusMessage = $"Error al cargar directorio: {ex.Message}";
         }
     }
-    
+
     private async Task LoadDirectoryStructure()
     {
         if (string.IsNullOrEmpty(userId)) return;
-        
+
         try
         {
             var allFiles = await fileManagerService.GetUserFilesAsync(userId);
             var directories = allFiles.Where(f => f.Type == FileItemType.Folder).ToList();
-            
+
             directoryStructure = BuildDirectoryTree(directories);
             StateHasChanged();
         }
@@ -326,12 +327,12 @@
             statusMessage = $"Error al cargar estructura de directorios: {ex.Message}";
         }
     }
-    
+
     private List<DirectoryItem> BuildDirectoryTree(List<FileItem> directories)
     {
         var tree = new List<DirectoryItem>();
         var lookup = new Dictionary<string, DirectoryItem>();
-        
+
         foreach (var dir in directories.OrderBy(d => d.Path))
         {
             var item = new DirectoryItem
@@ -339,9 +340,9 @@
                 Name = GetFolderName(dir.Path),
                 Path = dir.Path
             };
-            
+
             lookup[dir.Path] = item;
-            
+
             var parentPath = GetParentPath(dir.Path);
             if (string.IsNullOrEmpty(parentPath))
             {
@@ -352,29 +353,29 @@
                 lookup[parentPath].Children.Add(item);
             }
         }
-        
+
         return tree;
     }
-    
+
     private string GetParentPath(string path)
     {
         if (string.IsNullOrEmpty(path)) return "";
         var lastSlash = path.LastIndexOf('/');
         return lastSlash > 0 ? path.Substring(0, lastSlash) : "";
     }
-    
+
     private async Task HandleMultipleFilesSelected(InputFileChangeEventArgs e)
     {
         if (string.IsNullOrEmpty(userId)) return;
-        
+
         isUploading = true;
         statusMessage = null;
-        
+
         var files = e.GetMultipleFiles().ToList();
         var successCount = 0;
         var errorCount = 0;
         var errors = new List<string>();
-        
+
         try
         {
             foreach (var file in files)
@@ -390,9 +391,9 @@
                     errors.Add($"{file.Name}: {ex.Message}");
                 }
             }
-            
+
             await LoadCurrentDirectory();
-            
+
             // Construir mensaje de estado basado en resultados
             if (errorCount == 0)
             {
@@ -417,19 +418,19 @@
             StateHasChanged();
         }
     }
-    
+
     private async Task NavigateToFolder(string folderPath)
     {
         currentPath = folderPath;
         await LoadCurrentDirectory();
     }
-    
+
     private void SetViewMode(string mode)
     {
         viewMode = mode;
         StateHasChanged();
     }
-    
+
     private void ToggleSelectAll()
     {
         if (isAllSelected)
@@ -442,26 +443,26 @@
         }
         StateHasChanged();
     }
-    
+
     private void ShowCreateFolderModal()
     {
         newFolderName = "";
         showCreateFolderModal = true;
     }
-    
+
     private async Task CreateFolder()
     {
         if (string.IsNullOrWhiteSpace(newFolderName) || string.IsNullOrEmpty(userId))
             return;
-        
+
         try
         {
-            var folderPath = string.IsNullOrEmpty(currentPath) 
-                ? newFolderName 
+            var folderPath = string.IsNullOrEmpty(currentPath)
+                ? newFolderName
                 : $"{currentPath}/{newFolderName}";
-            
+
             await fileManagerService.CreateFolderAsync(newFolderName, currentPath, userId, selectedClientId);
-            
+
             showCreateFolderModal = false;
             await LoadCurrentDirectory();
             await LoadDirectoryStructure();
@@ -472,11 +473,11 @@
             statusMessage = $"Error al crear carpeta: {ex.Message}";
         }
     }
-    
+
     private async Task DeleteSelectedItems()
     {
         if (!HasSelectedItems || string.IsNullOrEmpty(userId)) return;
-        
+
         try
         {
             foreach (var item in selectedItems)
@@ -487,7 +488,7 @@
                     await fileManagerService.DeleteFileItemAsync(item.Id.Value, userId);
                 }
             }
-            
+
             await LoadCurrentDirectory();
             await LoadDirectoryStructure();
             statusMessage = $"Se eliminaron {selectedItems.Count} elemento(s) exitosamente.";
@@ -498,19 +499,19 @@
             statusMessage = $"Error al eliminar elementos: {ex.Message}";
         }
     }
-    
+
     private void ShareSelectedItems()
     {
         if (!HasSelectedItems) return;
-        
+
         generatedShareLink = "";
         showShareModal = true;
     }
-    
+
     private async Task GenerateShareLink()
     {
         if (!HasSelectedItems || string.IsNullOrEmpty(userId)) return;
-        
+
         try
         {
             var firstItem = selectedItems.First();
@@ -523,58 +524,58 @@
             statusMessage = $"Error al generar enlace: {ex.Message}";
         }
     }
-    
+
     private async Task CopyToClipboard(string text)
     {
         await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
         statusMessage = "Enlace copiado al portapapeles.";
     }
-    
+
     private List<BreadcrumbItem> GetBreadcrumbPath()
     {
         if (string.IsNullOrEmpty(currentPath))
             return new List<BreadcrumbItem>();
-        
+
         var parts = currentPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
         var breadcrumbs = new List<BreadcrumbItem>();
         var currentBreadcrumbPath = "";
-        
+
         foreach (var part in parts)
         {
-            currentBreadcrumbPath = string.IsNullOrEmpty(currentBreadcrumbPath) 
-                ? part 
+            currentBreadcrumbPath = string.IsNullOrEmpty(currentBreadcrumbPath)
+                ? part
                 : $"{currentBreadcrumbPath}/{part}";
-            
+
             breadcrumbs.Add(new BreadcrumbItem
             {
                 Name = part,
                 Path = currentBreadcrumbPath
             });
         }
-        
+
         return breadcrumbs;
     }
-    
+
     private string GetFolderName(string path)
     {
         if (string.IsNullOrEmpty(path)) return "";
         var lastSlash = path.LastIndexOf('/');
         return lastSlash >= 0 ? path.Substring(lastSlash + 1) : path;
     }
-    
+
     private RenderFragment RenderDirectoryTree(List<DirectoryItem> items) => builder =>
     {
         var sequence = 0;
-        
+
         foreach (var item in items)
         {
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "directory-item");
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", $"directory-node {(item.Path == currentPath ? "active" : "")}");
             builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => NavigateToFolder(item.Path)));
-            
+
             if (item.Children.Any())
             {
                 builder.OpenElement(sequence++, "i");
@@ -588,17 +589,17 @@
                 builder.AddAttribute(sequence++, "class", "directory-spacer");
                 builder.CloseElement();
             }
-            
+
             builder.OpenElement(sequence++, "i");
             builder.AddAttribute(sequence++, "class", "fe fe-folder");
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "span");
             builder.AddContent(sequence++, item.Name);
             builder.CloseElement();
-            
+
             builder.CloseElement(); // directory-node
-            
+
             if (item.IsExpanded && item.Children.Any())
             {
                 builder.OpenElement(sequence++, "div");
@@ -606,32 +607,32 @@
                 builder.AddContent(sequence++, RenderDirectoryTree(item.Children));
                 builder.CloseElement();
             }
-            
+
             builder.CloseElement(); // directory-item
         }
     };
-    
+
     private void ToggleDirectoryExpansion(DirectoryItem item)
     {
         item.IsExpanded = !item.IsExpanded;
         StateHasChanged();
     }
-    
+
     private RenderFragment RenderFileGridItems() => builder =>
     {
         var sequence = 0;
-        
+
         builder.OpenElement(sequence++, "div");
         builder.AddAttribute(sequence++, "class", "file-grid");
-        
+
         foreach (var item in currentItems)
         {
             var isSelected = selectedItems.Contains(item);
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", $"file-item {(isSelected ? "selected" : "")}");
             builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleFileSelection(item)));
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-checkbox");
             builder.OpenElement(sequence++, "input");
@@ -639,20 +640,20 @@
             builder.AddAttribute(sequence++, "checked", isSelected);
             builder.CloseElement();
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-icon");
             builder.OpenElement(sequence++, "i");
             builder.AddAttribute(sequence++, "class", GetFileIcon(item));
             builder.CloseElement();
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-name");
             builder.AddAttribute(sequence++, "title", item.Name);
             builder.AddContent(sequence++, item.Name);
             builder.CloseElement();
-            
+
             if (!item.IsDirectory)
             {
                 builder.OpenElement(sequence++, "div");
@@ -660,59 +661,59 @@
                 builder.AddContent(sequence++, FormatFileSize(item.Size));
                 builder.CloseElement();
             }
-            
+
             builder.CloseElement(); // file-item
         }
-        
+
         builder.CloseElement(); // file-grid
     };
-    
+
     private RenderFragment RenderFileListItems() => builder =>
     {
         var sequence = 0;
-        
+
         builder.OpenElement(sequence++, "div");
         builder.AddAttribute(sequence++, "class", "file-list");
-        
+
         // Header
         builder.OpenElement(sequence++, "div");
         builder.AddAttribute(sequence++, "class", "file-list-header");
-        
+
         builder.OpenElement(sequence++, "div");
         builder.AddAttribute(sequence++, "class", "file-list-cell checkbox-cell");
         builder.CloseElement();
-        
+
         builder.OpenElement(sequence++, "div");
         builder.AddAttribute(sequence++, "class", "file-list-cell name-cell");
         builder.AddContent(sequence++, "Nombre");
         builder.CloseElement();
-        
+
         builder.OpenElement(sequence++, "div");
         builder.AddAttribute(sequence++, "class", "file-list-cell size-cell");
         builder.AddContent(sequence++, "Tamaño");
         builder.CloseElement();
-        
+
         builder.OpenElement(sequence++, "div");
         builder.AddAttribute(sequence++, "class", "file-list-cell type-cell");
         builder.AddContent(sequence++, "Tipo");
         builder.CloseElement();
-        
+
         builder.OpenElement(sequence++, "div");
         builder.AddAttribute(sequence++, "class", "file-list-cell date-cell");
         builder.AddContent(sequence++, "Fecha modificación");
         builder.CloseElement();
-        
+
         builder.CloseElement(); // file-list-header
-        
+
         // Items
         foreach (var item in currentItems)
         {
             var isSelected = selectedItems.Contains(item);
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", $"file-list-row {(isSelected ? "selected" : "")}");
             builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleFileSelection(item)));
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-list-cell checkbox-cell");
             builder.OpenElement(sequence++, "input");
@@ -720,7 +721,7 @@
             builder.AddAttribute(sequence++, "checked", isSelected);
             builder.CloseElement();
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-list-cell name-cell");
             builder.OpenElement(sequence++, "i");
@@ -728,33 +729,33 @@
             builder.CloseElement();
             builder.AddContent(sequence++, " " + item.Name);
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-list-cell size-cell");
             builder.AddContent(sequence++, item.IsDirectory ? "-" : FormatFileSize(item.Size));
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-list-cell type-cell");
             builder.AddContent(sequence++, item.IsDirectory ? "Carpeta" : item.Extension.ToUpper());
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-list-cell date-cell");
             builder.AddContent(sequence++, item.LastModified.ToString("dd/MM/yyyy HH:mm"));
             builder.CloseElement();
-            
+
             builder.CloseElement(); // file-list-row
         }
-        
+
         builder.CloseElement(); // file-list
     };
-    
+
     private string GetFileIcon(FileSystemItem item)
     {
         if (item.IsDirectory)
             return "fe fe-folder";
-        
+
         return item.Extension.ToLower() switch
         {
             ".pdf" => "fe fe-file-text",
@@ -768,7 +769,7 @@
             _ => "fe fe-file"
         };
     }
-    
+
     private string FormatFileSize(long bytes)
     {
         string[] sizes = { "B", "KB", "MB", "GB", "TB" };
@@ -781,7 +782,7 @@
         }
         return $"{len:0.##} {sizes[order]}";
     }
-    
+
     private void ToggleFileSelection(FileSystemItem item)
     {
         if (selectedItems.Contains(item))
@@ -794,46 +795,46 @@
         }
         StateHasChanged();
     }
-    
+
     private void NavigateUp()
     {
         if (string.IsNullOrEmpty(currentPath)) return;
-        
+
         var lastSlash = currentPath.LastIndexOf('/');
         currentPath = lastSlash > 0 ? currentPath.Substring(0, lastSlash) : "";
         LoadCurrentDirectory();
     }
-    
+
     private async Task OnDragOver(DragEventArgs e)
     {
         e.DataTransfer.DropEffect = "copy";
     }
-    
+
     private async Task OnDragEnter(DragEventArgs e)
     {
         isDragOver = true;
         StateHasChanged();
     }
-    
+
     private async Task OnDragLeave(DragEventArgs e)
     {
         isDragOver = false;
         StateHasChanged();
     }
-    
+
     private async Task OnDrop(DragEventArgs e)
     {
         isDragOver = false;
         StateHasChanged();
-        
+
         // La funcionalidad de drag & drop requiere JavaScript adicional
         // para acceder a los archivos del sistema
     }
-    
+
     private async Task UploadSingleFile(IBrowserFile file)
     {
         if (string.IsNullOrEmpty(userId)) return;
-        
+
         try
         {
             // Validar tamaño del archivo (10MB máximo)
@@ -844,7 +845,7 @@
                 StateHasChanged();
                 return;
             }
-            
+
             // Validar tipo de archivo (opcional - puedes agregar restricciones)
             var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".mp4", ".avi", ".mov", ".mp3", ".wav", ".txt", ".zip", ".rar" };
             var fileExtension = Path.GetExtension(file.Name).ToLower();
@@ -854,18 +855,18 @@
                 StateHasChanged();
                 return;
             }
-            
+
             using var stream = file.OpenReadStream(maxAllowedSize: maxFileSize);
             var result = await fileManagerService.SaveFileWithContentAsync(
-                file.Name, 
-                currentPath, 
-                stream, 
-                file.ContentType, 
-                userId, 
+                file.Name,
+                currentPath,
+                stream,
+                file.ContentType,
+                userId,
                 WebHostEnvironment.WebRootPath,
                 selectedClientId
             );
-            
+
             if (result != null)
             {
                 statusMessage = $"Archivo {result.Name} subido correctamente";
@@ -880,7 +881,7 @@
         {
             statusMessage = $"Error al subir el archivo {file.Name}: {ex.Message}";
         }
-        
+
         StateHasChanged();
     }
 }

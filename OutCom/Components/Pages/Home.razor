@@ -1,8 +1,505 @@
-﻿@page "/"
+@page "/"
+@using Microsoft.AspNetCore.Identity
+@using OutCom.Data
+@using OutCom.Services
+@using OutCom.Models
 @attribute [Authorize]
+@inject UserManager<ApplicationUser> UserManager
+@inject IDashboardService DashboardService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard - OutCom</PageTitle>
 
-<h1>Hello, world!</h1>
+@if (isLoading)
+{
+    <div class="d-flex justify-content-center align-items-center" style="height: 50vh;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+}
+else if (!isAdmin)
+{
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="alert alert-warning text-center">
+                    <h4><i class="fa fa-exclamation-triangle"></i> Acceso Restringido</h4>
+                    <p>Esta página está disponible únicamente para administradores del sistema.</p>
+                    <p>Si necesita acceso, contacte con el administrador.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="dashboard-container">
+        <div class="dashboard-header mb-4">
+            <h1 class="dashboard-title">
+                <i class="fa fa-tachometer"></i> Dashboard Administrativo
+            </h1>
+            <p class="dashboard-subtitle">Panel de control y métricas del sistema OutCom</p>
+        </div>
 
-Welcome to your new app.
+        @if (dashboardStats != null)
+        {
+            <!-- Estadísticas Principales -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card dashboard-card border-left-primary">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Usuarios Totales
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@dashboardStats.UserStats.TotalUsers</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fa fa-users fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card dashboard-card border-left-success">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Archivos Totales
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@dashboardStats.FileStats.TotalFiles</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fa fa-file fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card dashboard-card border-left-info">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Almacenamiento
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@FormatFileSize(dashboardStats.FileStats.TotalSizeBytes)</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fa fa-hdd-o fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card dashboard-card border-left-warning">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Enlaces Compartidos
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@dashboardStats.SharedLinkStats.TotalActiveLinks</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fa fa-share-alt fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos y Estadísticas Detalladas -->
+            <div class="row mb-4">
+                <!-- Estadísticas de Usuarios -->
+                <div class="col-xl-6 col-lg-6">
+                    <div class="card dashboard-card">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fa fa-users"></i> Estadísticas de Usuarios
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Usuarios Activos:</span>
+                                        <span class="stat-value text-success">@dashboardStats.UserStats.ActiveUsers</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Usuarios Inactivos:</span>
+                                        <span class="stat-value text-danger">@dashboardStats.UserStats.InactiveUsers</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Administradores:</span>
+                                        <span class="stat-value text-info">@dashboardStats.UserStats.AdminUsers</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Usuarios Regulares:</span>
+                                        <span class="stat-value text-secondary">@dashboardStats.UserStats.RegularUsers</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Barra de progreso visual -->
+                            <div class="mt-3">
+                                <div class="progress-label">Distribución de Usuarios</div>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: @(GetPercentage(dashboardStats.UserStats.ActiveUsers, dashboardStats.UserStats.TotalUsers))%"
+                                         title="Activos: @dashboardStats.UserStats.ActiveUsers">
+                                        @dashboardStats.UserStats.ActiveUsers
+                                    </div>
+                                    <div class="progress-bar bg-danger" role="progressbar" 
+                                         style="width: @(GetPercentage(dashboardStats.UserStats.InactiveUsers, dashboardStats.UserStats.TotalUsers))%"
+                                         title="Inactivos: @dashboardStats.UserStats.InactiveUsers">
+                                        @dashboardStats.UserStats.InactiveUsers
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estadísticas de Archivos -->
+                <div class="col-xl-6 col-lg-6">
+                    <div class="card dashboard-card">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-success">
+                                <i class="fa fa-file"></i> Estadísticas de Archivos
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Archivos:</span>
+                                        <span class="stat-value text-primary">@dashboardStats.FileStats.TotalFiles</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Carpetas:</span>
+                                        <span class="stat-value text-info">@dashboardStats.FileStats.TotalFolders</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Archivos Compartidos:</span>
+                                        <span class="stat-value text-warning">@dashboardStats.FileStats.SharedFiles</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Tamaño Promedio:</span>
+                                        <span class="stat-value text-secondary">@FormatFileSize(dashboardStats.FileStats.AverageFileSize)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tipos de archivo más comunes -->
+                            @if (dashboardStats.FileStats.FileTypeDistribution?.Any() == true)
+                            {
+                                <div class="mt-3">
+                                    <div class="progress-label">Tipos de Archivo Más Comunes</div>
+                                    @foreach (var fileType in dashboardStats.FileStats.FileTypeDistribution.Take(3))
+                                    {
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="small">@fileType.Key</span>
+                                            <span class="badge badge-primary">@fileType.Value</span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actividad Reciente y Rendimiento -->
+            <div class="row mb-4">
+                <!-- Actividad Reciente -->
+                <div class="col-xl-8 col-lg-7">
+                    <div class="card dashboard-card">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-info">
+                                <i class="fa fa-clock-o"></i> Actividad Reciente del Sistema
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            @if (recentActivity?.Any() == true)
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Usuario</th>
+                                                <th>Acción</th>
+                                                <th>Fecha</th>
+                                                <th>IP</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var activity in recentActivity.Take(10))
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <span class="text-truncate" style="max-width: 120px; display: inline-block;">
+                                                            @activity.UserName
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge @GetActionBadgeClass(activity.Action.ToString())">@activity.Description</span>
+                                                    </td>
+                                                    <td>
+                                                        <small class="text-muted">@activity.Timestamp.ToString("dd/MM HH:mm")</small>
+                                                    </td>
+                                                    <td>
+                                                        <small class="text-muted">@activity.IpAddress</small>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted text-center">No hay actividad reciente registrada.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Métricas de Rendimiento -->
+                <div class="col-xl-4 col-lg-5">
+                    <div class="card dashboard-card">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-warning">
+                                <i class="fa fa-line-chart"></i> Rendimiento del Sistema
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            @if (dashboardStats.SystemPerformance != null)
+                            {
+                                <div class="stat-item mb-3">
+                                    <span class="stat-label">Archivos Subidos Hoy:</span>
+                                    <span class="stat-value text-success">@dashboardStats.SystemPerformance.FilesUploadedToday</span>
+                                </div>
+                                <div class="stat-item mb-3">
+                                    <span class="stat-label">Esta Semana:</span>
+                                    <span class="stat-value text-info">@dashboardStats.SystemPerformance.FilesUploadedThisWeek</span>
+                                </div>
+                                <div class="stat-item mb-3">
+                                    <span class="stat-label">Este Mes:</span>
+                                    <span class="stat-value text-primary">@dashboardStats.SystemPerformance.FilesUploadedThisMonth</span>
+                                </div>
+                                <div class="stat-item mb-3">
+                                    <span class="stat-label">Logins Hoy:</span>
+                                    <span class="stat-value text-warning">@dashboardStats.ActivityStats.LoginsToday</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usuarios Top y Enlaces Próximos a Expirar -->
+            <div class="row mb-4">
+                <!-- Usuarios con Más Archivos -->
+                <div class="col-xl-6 col-lg-6">
+                    <div class="card dashboard-card">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-success">
+                                <i class="fa fa-trophy"></i> Usuarios con Más Archivos
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            @if (topFileUsers?.Any() == true)
+                            {
+                                @foreach (var user in topFileUsers.Take(5))
+                                {
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <strong>@user.UserName</strong>
+                                            <br>
+                                            <small class="text-muted">@FormatFileSize(user.TotalSizeBytes)</small>
+                                        </div>
+                                        <span class="badge badge-success badge-pill">@user.FileCount archivos</span>
+                                    </div>
+                                    <hr class="my-2">
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted text-center">No hay datos de usuarios disponibles.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enlaces Próximos a Expirar -->
+                <div class="col-xl-6 col-lg-6">
+                    <div class="card dashboard-card">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-danger">
+                                <i class="fa fa-exclamation-triangle"></i> Enlaces Próximos a Expirar
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            @if (expiringLinks?.Any() == true)
+                            {
+                                @foreach (var link in expiringLinks.Take(5))
+                                {
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <strong class="text-truncate" style="max-width: 150px; display: inline-block;">@link.FileName</strong>
+                                            <br>
+                                            <small class="text-muted">@link.OwnerUserName</small>
+                                        </div>
+                                        <span class="badge badge-warning">@GetDaysUntilExpiration(link.ExpirationDate)</span>
+                                    </div>
+                                    <hr class="my-2">
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted text-center">No hay enlaces próximos a expirar.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center">
+                <i class="fa fa-info-circle"></i> No se pudieron cargar las estadísticas del dashboard.
+            </div>
+        }
+    </div>
+}
+
+
+
+@code {
+    private bool isLoading = true;
+    private bool isAdmin = false;
+    private DashboardStats? dashboardStats;
+    private List<RecentActivity>? recentActivity;
+    private List<TopFileUser>? topFileUsers;
+    private List<ExpiringLink>? expiringLinks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var applicationUser = await UserManager.GetUserAsync(user);
+                if (applicationUser != null)
+                {
+                    isAdmin = await UserManager.IsInRoleAsync(applicationUser, "Admin");
+                    
+                    if (isAdmin)
+                    {
+                        await LoadDashboardData();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error if needed
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            dashboardStats = await DashboardService.GetDashboardStatsAsync();
+            recentActivity = await DashboardService.GetRecentActivitiesAsync(20);
+            topFileUsers = await DashboardService.GetTopFileUsersAsync(10);
+            expiringLinks = await DashboardService.GetLinksExpiringSoonAsync(10);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+        }
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes == 0) return "0 B";
+        
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double size = bytes;
+        
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    private double GetPercentage(int value, int total)
+    {
+        return total > 0 ? (double)value / total * 100 : 0;
+    }
+
+    private string GetActionBadgeClass(string action)
+    {
+        return action.ToLower() switch
+        {
+            var a when a.Contains("login") => "badge-success",
+            var a when a.Contains("logout") => "badge-secondary",
+            var a when a.Contains("create") => "badge-primary",
+            var a when a.Contains("update") => "badge-info",
+            var a when a.Contains("delete") => "badge-danger",
+            var a when a.Contains("password") => "badge-warning",
+            _ => "badge-light"
+        };
+    }
+
+    private string GetDaysUntilExpiration(DateTime? expirationDate)
+    {
+        if (!expirationDate.HasValue) return "Sin expiración";
+        
+        var days = (expirationDate.Value - DateTime.UtcNow).Days;
+        
+        if (days < 0) return "Expirado";
+        if (days == 0) return "Hoy";
+        if (days == 1) return "1 día";
+        
+        return $"{days} días";
+    }
+}
