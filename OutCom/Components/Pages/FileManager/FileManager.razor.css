@@ -1,68 +1,172 @@
-/* Estilos para el Administrador de Archivos */
-.file-manager-container {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 120px);
-    background: #ffffff;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
+/* Toolbar principal rediseñado */
+.fm-toolbar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
     overflow: hidden;
 }
 
-/* Barra de herramientas superior */
-.toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.fm-toolbar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%, rgba(255, 255, 255, 0.05) 100%);
+    pointer-events: none;
+}
+
+/* Sección de navegación */
+.fm-navigation-section {
+    margin-bottom: 16px;
+}
+
+.fm-breadcrumbs {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
     padding: 12px 16px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-    min-height: 60px;
+    backdrop-filter: blur(5px);
 }
 
-.breadcrumbs {
-    flex: 1;
-    margin-right: 16px;
-}
-
-.breadcrumb {
+.fm-breadcrumb-list {
+    display: flex;
+    align-items: center;
     margin: 0;
-    background: transparent;
     padding: 0;
+    list-style: none;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
-.breadcrumb-item {
-    font-size: 14px;
-}
-
-.breadcrumb-item a {
-    color: #6c757d;
-    text-decoration: none;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-}
-
-.breadcrumb-item a:hover {
-    background: #e9ecef;
-    color: #495057;
-}
-
-.toolbar-actions {
+.fm-breadcrumb-item {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.toolbar-actions .btn {
-    font-size: 13px;
+.fm-breadcrumb-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
     padding: 6px 12px;
     border-radius: 6px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 14px;
 }
 
-.toolbar-actions .btn i {
-    margin-right: 4px;
+.fm-breadcrumb-link:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.fm-breadcrumb-separator {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+}
+
+/* Sección de acciones */
+.fm-actions-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.fm-action-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Botones rediseñados */
+.fm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.fm-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.fm-btn:hover::before {
+    left: 100%;
+}
+
+.fm-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.fm-btn:active {
+    transform: translateY(0);
+}
+
+.fm-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.fm-btn:disabled:hover {
+    transform: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Variantes de botones */
+.fm-btn-primary {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.fm-btn-success {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    color: white;
+}
+
+.fm-btn-danger {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    color: white;
+}
+
+.fm-btn-info {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    color: #333;
+}
+
+.fm-btn-warning {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    color: #333;
 }
 
 /* Área principal */
@@ -551,63 +655,42 @@
 }
 
 /* Responsive */
+/* Responsividad */
 @media (max-width: 768px) {
-    .file-manager-container {
-        height: calc(100vh - 80px);
+    .fm-toolbar {
+        padding: 16px;
     }
     
-    .main-area {
-        flex-direction: column;
-    }
-    
-    .sidebar {
-        width: 100%;
-        height: 200px;
-        border-right: none;
-        border-bottom: 1px solid #e9ecef;
-    }
-    
-    .toolbar {
+    .fm-actions-section {
         flex-direction: column;
         align-items: stretch;
-        gap: 8px;
-        min-height: auto;
-        padding: 8px;
     }
     
-    .breadcrumbs {
-        margin-right: 0;
-        margin-bottom: 8px;
-    }
-    
-    .toolbar-actions {
+    .fm-action-group {
         justify-content: center;
         flex-wrap: wrap;
     }
     
-    .file-content.grid-view .file-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 12px;
-    }
-    
-    .file-list-header,
-    .file-list-row {
-        grid-template-columns: 40px 1fr 80px;
-        gap: 12px;
-        padding: 12px 16px;
-    }
-    
-    .type-cell,
-    .date-cell {
+    .fm-btn span {
         display: none;
     }
     
-    .name-cell {
-        min-width: 0;
+    .fm-view-selector {
+        justify-content: center;
     }
     
-    .size-cell {
-        text-align: center;
+    .fm-view-btn span {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .fm-breadcrumb-link span {
+        display: none;
+    }
+    
+    .fm-view-label span {
+        display: none;
     }
 }
 
@@ -1008,4 +1091,87 @@
 .remove-dates-option .form-check-label {
     color: #856404;
     font-weight: 500;
+}
+
+/* Selector de vista minimalista y compacto */
+.fm-view-selector-compact {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.fm-view-toggle-group {
+    display: inline-flex;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 4px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fm-view-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+    margin: 0;
+    padding: 0;
+}
+
+.fm-view-toggle:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.fm-view-toggle.active {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transform: none;
+}
+
+.fm-view-toggle.active:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: none;
+}
+
+/* Responsive para el selector compacto */
+@media (max-width: 768px) {
+    .fm-view-toggle {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+    
+    .fm-view-toggle-group {
+        padding: 3px;
+    }
+}
+
+@media (max-width: 480px) {
+    .fm-view-selector-compact {
+        order: 1;
+        margin-left: auto;
+    }
+    
+    .fm-view-toggle {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    
+    .fm-view-toggle-group {
+        padding: 2px;
+    }
 }

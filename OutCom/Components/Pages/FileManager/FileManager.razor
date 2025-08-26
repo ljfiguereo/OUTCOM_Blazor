@@ -16,72 +16,98 @@
 <PageTitle>Administrador de Archivos</PageTitle>
 
 <div class="file-manager-container">
-    <!-- Barra de herramientas superior -->
-    <div class="toolbar">
-        <!-- Breadcrumbs -->
-        <div class="breadcrumbs">
+    <!-- Barra de herramientas superior rediseñada -->
+<div class="fm-toolbar">
+    <!-- Sección de navegación con breadcrumbs -->
+    <div class="fm-navigation-section">
+        <div class="fm-breadcrumbs">
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="#" @onclick="() => NavigateToFolder(string.Empty)" @onclick:preventDefault="true">
-                            <i class="fe fe-home"></i> Inicio
+                <ol class="fm-breadcrumb-list">
+                    <li class="fm-breadcrumb-item">
+                        <a href="#" @onclick="() => NavigateToFolder(string.Empty)" @onclick:preventDefault="true" class="fm-breadcrumb-link">
+                            <i class="fe fe-home"></i>
+                            <span>Inicio</span>
                         </a>
                     </li>
                     @foreach (var crumb in GetBreadcrumbPath())
                     {
-                        <li class="breadcrumb-item">
-                            <a href="#" @onclick="() => NavigateToFolder(crumb.Path)" @onclick:preventDefault="true">
-                                @crumb.Name
+                        <li class="fm-breadcrumb-item">
+                            <i class="fe fe-chevron-right fm-breadcrumb-separator"></i>
+                            <a href="#" @onclick="() => NavigateToFolder(crumb.Path)" @onclick:preventDefault="true" class="fm-breadcrumb-link">
+                                <span>@crumb.Name</span>
                             </a>
                         </li>
                     }
                 </ol>
             </nav>
         </div>
+    </div>
 
-        <!-- Botones de acción -->
-        <div class="toolbar-actions">
-            <button class="btn btn-primary btn-sm" @onclick="ShowCreateFolderModal" title="Nueva Carpeta">
-                <i class="fe fe-folder-plus"></i> Nueva Carpeta
+    <!-- Sección de acciones principales -->
+    <div class="fm-actions-section">
+        <!-- Grupo de acciones de archivos -->
+        <div class="fm-action-group">
+            <button class="fm-btn fm-btn-primary" @onclick="ShowCreateFolderModal" title="Nueva Carpeta">
+                <i class="fe fe-folder-plus"></i>
+                <span>Nueva Carpeta</span>
             </button>
 
-            <label class="btn btn-success btn-sm" title="Subir Archivos">
-                <i class="fe fe-upload"></i> Subir
+            <label class="fm-btn fm-btn-success" title="Subir Archivos">
+                <i class="fe fe-upload"></i>
+                <span>Subir</span>
                 <InputFile OnChange="HandleMultipleFilesSelected" multiple style="display: none;" />
             </label>
+        </div>
 
-            <button class="btn btn-danger btn-sm" @onclick="DeleteSelectedItems"
+        <!-- Grupo de acciones de gestión -->
+        <div class="fm-action-group">
+            <button class="fm-btn fm-btn-danger" @onclick="DeleteSelectedItems"
                     disabled="@(!HasSelectedItems)" title="Eliminar Seleccionados">
-                <i class="fe fe-trash-2"></i> Eliminar
+                <i class="fe fe-trash-2"></i>
+                <span>Eliminar</span>
+                <span class="fm-badge" style="display: @(HasSelectedItems ? "inline-flex" : "none")">@selectedItems.Count</span>
             </button>
 
-            <button class="btn btn-info btn-sm" @onclick="ShareSelectedItems"
+            <button class="fm-btn fm-btn-info" @onclick="ShareSelectedItems"
                     disabled="@(!HasSelectedItems)" title="Compartir Seleccionados">
-                <i class="fe fe-share-2"></i> Compartir
+                <i class="fe fe-share-2"></i>
+                <span>Compartir</span>
             </button>
 
-            <button class="btn btn-warning btn-sm" @onclick="ShowMassEditModal"
+            <button class="fm-btn fm-btn-warning" @onclick="ShowMassEditModal"
                     disabled="@(!HasSelectedFiles)" title="Editar Fechas de Expiración">
-                <i class="fe fe-calendar"></i> Editar Fechas
+                <i class="fe fe-calendar"></i>
+                <span>Editar Fechas</span>
             </button>
+        </div>
 
-            <!-- Selector de vista -->
-            <div class="btn-group ms-2" role="group">
-                <button class="btn btn-outline-secondary btn-sm @(viewMode == "grid" ? "active" : "")"
+        <!-- Selector de vista minimalista -->
+        <div class="fm-view-selector-compact">
+            <div class="fm-view-toggle-group">
+                <button class="fm-view-toggle @(viewMode == "grid" ? "active" : "")"
                         @onclick="@(() => SetViewMode("grid"))" title="Vista de Iconos">
                     <i class="fe fe-grid"></i>
                 </button>
-                <button class="btn btn-outline-secondary btn-sm @(viewMode == "list" ? "active" : "")"
+                <button class="fm-view-toggle @(viewMode == "list" ? "active" : "")"
                         @onclick="@(() => SetViewMode("list"))" title="Vista de Lista">
                     <i class="fe fe-list"></i>
                 </button>
-                <button class="btn btn-outline-secondary btn-sm @(viewMode == "details" ? "active" : "")"
+                <button class="fm-view-toggle @(viewMode == "details" ? "active" : "")"
                         @onclick="@(() => SetViewMode("details"))" title="Vista Detallada">
                     <i class="fe fe-menu"></i>
                 </button>
             </div>
         </div>
     </div>
+
+    <!-- Indicador de estado -->
+    <div class="fm-status-indicator" style="display: @(HasSelectedItems ? "flex" : "none")">
+        <div class="fm-selection-info">
+            <i class="fe fe-check-circle"></i>
+            <span>@selectedItems.Count elemento(s) seleccionado(s)</span>
+        </div>
+    </div>
+</div>
 
     <!-- Área principal con sidebar y contenido -->
     <div class="main-area">
