@@ -63,11 +63,11 @@
                         <span class="fm-btn-text">Nueva carpeta</span>
                     </button>
 
-                    <label class="fm-action-btn fm-btn-upload" title="Subir archivos">
+                    <button class="fm-action-btn fm-btn-upload mb-0" title="Subir archivos">
                         <i class="fe fe-upload"></i>
                         <span class="fm-btn-text">Subir</span>
                         <InputFile OnChange="HandleMultipleFilesSelected" multiple class="fm-file-input" />
-                    </label>
+                    </button>
                 </div>
 
                 <!-- Acciones contextuales (aparecen cuando hay selección) -->
@@ -664,7 +664,7 @@
 }
 
 @code {
-    // Variables de estado principales
+        // Variables de estado principales
     private string? userId;
     private string? selectedClientId;
     private string currentPath = "";
@@ -694,7 +694,7 @@
     private DateTime? editFileExpirationDate = null;
     private DateTime? massEditExpirationDate = null;
     private bool removeExistingDates = false;
-    
+
     // Configuración de archivos para subir
     private List<IBrowserFile> pendingFiles = new();
     private List<FileUploadConfig> pendingFileConfigs = new();
@@ -1077,91 +1077,124 @@
         var sequence = 0;
 
         builder.OpenElement(sequence++, "div");
-        builder.AddAttribute(sequence++, "class", "file-grid");
+        builder.AddAttribute(sequence++, "class", "file-grid-minimal");
 
         foreach (var item in currentItems)
         {
             var isSelected = selectedItems.Contains(item);
 
             builder.OpenElement(sequence++, "div");
-            builder.AddAttribute(sequence++, "class", $"file-item {(isSelected ? "selected" : "")}");
+            builder.AddAttribute(sequence++, "class", $"file-item-minimal {(isSelected ? "selected" : "")}");
             builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleFileSelection(item)));
 
-            // Acciones del archivo (checkbox y botón editar)
+            // Checkbox de selección minimalista
             builder.OpenElement(sequence++, "div");
-            builder.AddAttribute(sequence++, "class", "file-actions");
-            
+            builder.AddAttribute(sequence++, "class", "file-checkbox-minimal");
             builder.OpenElement(sequence++, "input");
             builder.AddAttribute(sequence++, "type", "checkbox");
-            builder.AddAttribute(sequence++, "class", "form-check-input");
+            builder.AddAttribute(sequence++, "class", "file-check-input");
             builder.AddAttribute(sequence++, "checked", isSelected);
-            builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this, (e) => { ToggleFileSelection(item); }));
+            builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleFileSelection(item)));
             builder.CloseElement();
-            
-            if (!item.IsDirectory)
-            {
-                builder.OpenElement(sequence++, "button");
-                builder.AddAttribute(sequence++, "class", "btn btn-sm btn-outline-primary edit-file-btn");
-                builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this, (e) => { ShowEditFileModal(item); }));
-                builder.AddAttribute(sequence++, "title", "Editar propiedades");
-                builder.OpenElement(sequence++, "i");
-                builder.AddAttribute(sequence++, "class", "fe fe-edit");
-                builder.CloseElement();
-                builder.CloseElement();
-            }
-            
-            builder.CloseElement(); // file-actions
+            builder.CloseElement();
 
-            // Icono del archivo
+            // Contenedor de previsualización/icono
             builder.OpenElement(sequence++, "div");
-            builder.AddAttribute(sequence++, "class", "file-icon");
+            builder.AddAttribute(sequence++, "class", "file-preview-container");
+
             if (IsImageFile(item))
             {
-                builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this, (e) => { ShowImagePreview(item); }));
-                builder.AddAttribute(sequence++, "style", "cursor: pointer;");
-                builder.AddAttribute(sequence++, "title", "Click para vista previa");
+                // Previsualización de imagen
+                builder.OpenElement(sequence++, "div");
+                builder.AddAttribute(sequence++, "class", "file-image-preview");
+                builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ShowImagePreview(item)));
+                builder.AddAttribute(sequence++, "title", "Click para vista previa completa");
+
+                builder.OpenElement(sequence++, "img");
+                builder.AddAttribute(sequence++, "src", GetImagePreviewUrl(item));
+                builder.AddAttribute(sequence++, "alt", item.Name);
+                builder.AddAttribute(sequence++, "class", "file-thumbnail");
+                builder.AddAttribute(sequence++, "loading", "lazy");
+                builder.CloseElement();
+
+                // Overlay con icono de vista previa
+                builder.OpenElement(sequence++, "div");
+                builder.AddAttribute(sequence++, "class", "file-preview-overlay");
+                builder.OpenElement(sequence++, "i");
+                builder.AddAttribute(sequence++, "class", "fe fe-eye");
+                builder.CloseElement();
+                builder.CloseElement();
+
+                builder.CloseElement();
             }
-            builder.OpenElement(sequence++, "i");
-            builder.AddAttribute(sequence++, "class", GetFileIcon(item));
-            builder.CloseElement();
-            builder.CloseElement();
+            else
+            {
+                // Icono para archivos no-imagen
+                builder.OpenElement(sequence++, "div");
+                builder.AddAttribute(sequence++, "class", "file-icon-minimal");
+                builder.OpenElement(sequence++, "i");
+                builder.AddAttribute(sequence++, "class", GetFileIcon(item));
+                builder.CloseElement();
+                builder.CloseElement();
+            }
+
+            builder.CloseElement(); // file-preview-container
+
+            // Información del archivo
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "file-info-minimal");
 
             // Nombre del archivo
             builder.OpenElement(sequence++, "div");
-            builder.AddAttribute(sequence++, "class", "file-name");
+            builder.AddAttribute(sequence++, "class", "file-name-minimal");
             builder.AddAttribute(sequence++, "title", !string.IsNullOrEmpty(item.Title) ? $"{item.Title} ({item.Name})" : item.Name);
             builder.AddContent(sequence++, !string.IsNullOrEmpty(item.Title) ? item.Title : item.Name);
             builder.CloseElement();
 
-            // Tamaño del archivo
+            // Metadatos del archivo
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "file-meta-minimal");
+
             if (!item.IsDirectory)
             {
-                builder.OpenElement(sequence++, "div");
-                builder.AddAttribute(sequence++, "class", "file-size");
+                builder.OpenElement(sequence++, "span");
+                builder.AddAttribute(sequence++, "class", "file-size-minimal");
                 builder.AddContent(sequence++, FormatFileSize(item.Size));
                 builder.CloseElement();
             }
 
-            // Fecha de expiración si existe
             if (item.ExpirationDate.HasValue)
             {
-                builder.OpenElement(sequence++, "div");
-                builder.AddAttribute(sequence++, "class", "file-expiration");
-                builder.AddAttribute(sequence++, "title", $"Expira: {item.ExpirationDate.Value:dd/MM/yyyy}");
-                builder.OpenElement(sequence++, "small");
-                builder.AddAttribute(sequence++, "class", item.ExpirationDate.Value < DateTime.Now ? "text-danger" : "text-warning");
+                builder.OpenElement(sequence++, "span");
+                builder.AddAttribute(sequence++, "class", $"file-expiry-minimal {(item.ExpirationDate.Value < DateTime.Now ? "expired" : "warning")}");
+                builder.AddAttribute(sequence++, "title", $"Expira: {item.ExpirationDate.Value:dd/MM/yyyy HH:mm}");
                 builder.OpenElement(sequence++, "i");
                 builder.AddAttribute(sequence++, "class", "fe fe-clock");
                 builder.CloseElement();
                 builder.AddContent(sequence++, $" {item.ExpirationDate.Value:dd/MM}");
                 builder.CloseElement();
+            }
+
+            builder.CloseElement(); // file-meta-minimal
+            builder.CloseElement(); // file-info-minimal
+
+            // Botón de edición (solo visible en hover)
+            if (!item.IsDirectory)
+            {
+                builder.OpenElement(sequence++, "button");
+                builder.AddAttribute(sequence++, "class", "file-edit-btn-minimal");
+                builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ShowEditFileModal(item)));
+                builder.AddAttribute(sequence++, "title", "Editar propiedades");
+                builder.OpenElement(sequence++, "i");
+                builder.AddAttribute(sequence++, "class", "fe fe-edit-2");
+                builder.CloseElement();
                 builder.CloseElement();
             }
 
-            builder.CloseElement(); // file-item
+            builder.CloseElement(); // file-item-minimal
         }
 
-        builder.CloseElement(); // file-grid
+        builder.CloseElement(); // file-grid-minimal
     };
 
     private RenderFragment RenderFileListItems() => builder =>
@@ -1212,16 +1245,16 @@
 
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-list-cell checkbox-cell");
-            
+
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "d-flex align-items-center gap-2");
-            
+
             builder.OpenElement(sequence++, "input");
             builder.AddAttribute(sequence++, "type", "checkbox");
             builder.AddAttribute(sequence++, "class", "form-check-input");
             builder.AddAttribute(sequence++, "checked", isSelected);
             builder.CloseElement();
-            
+
             if (!item.IsDirectory)
             {
                 builder.OpenElement(sequence++, "button");
@@ -1233,7 +1266,7 @@
                 builder.CloseElement();
                 builder.CloseElement();
             }
-            
+
             builder.CloseElement();
             builder.CloseElement();
 
@@ -1308,10 +1341,10 @@
     private bool IsImageFile(FileSystemItem item)
     {
         if (item.IsDirectory) return false;
-        
+
         var extension = Path.GetExtension(item.Name).ToLowerInvariant();
-        return extension == ".jpg" || extension == ".jpeg" || extension == ".png" || 
-               extension == ".gif" || extension == ".bmp" || extension == ".webp" || 
+        return extension == ".jpg" || extension == ".jpeg" || extension == ".png" ||
+               extension == ".gif" || extension == ".bmp" || extension == ".webp" ||
                extension == ".svg" || extension == ".ico";
     }
 
@@ -1362,11 +1395,11 @@
     private void NavigateImage(int direction)
     {
         if (!CanNavigateImage(direction)) return;
-        
+
         var imageFiles = GetImageFiles();
         var currentIndex = GetCurrentImageIndex();
         var newIndex = currentIndex + direction;
-        
+
         if (newIndex >= 0 && newIndex < imageFiles.Count)
         {
             selectedImageForPreview = imageFiles[newIndex];
@@ -1388,7 +1421,7 @@
         {
             var relativePath = Path.Combine(currentPath, item.Name);
             var downloadUrl = $"/api/files/download?path={Uri.EscapeDataString(relativePath)}";
-            
+
             // Usar JavaScript para iniciar la descarga
             await JSRuntime.InvokeVoidAsync("window.open", downloadUrl, "_blank");
         }
@@ -1426,7 +1459,7 @@
             pendingFileConfigs.Clear();
             massExpirationDate = null;
             massTitlePrefix = string.Empty;
-            
+
             // Recargar el directorio actual
             await LoadCurrentDirectory();
             StateHasChanged();
@@ -1493,8 +1526,18 @@
 
     private async Task UploadFileWithConfig(FileUploadConfig config)
     {
+        if (string.IsNullOrEmpty(userId)) return;
+
         try
         {
+            // Validate file size (10MB max)
+            const long maxFileSize = 10 * 1024 * 1024;
+            if (config.FileSize > maxFileSize)
+            {
+                throw new Exception($"File {config.FileName} is too large. Maximum size: 10MB");
+            }
+
+            // Create file item with metadata
             var fileItem = new FileItem
             {
                 Name = config.FileName,
@@ -1505,15 +1548,36 @@
                 Path = Path.Combine(currentPath, config.FileName)
             };
 
-            // Aquí llamarías al servicio para subir el archivo con la configuración
-            // await FileManagerService.UploadFileAsync(config.File, fileItem);
-            
-            Console.WriteLine($"Archivo configurado para subir: {config.Title} - {config.FileName}");
+            // Open stream and upload file with metadata
+            using var stream = config.File.OpenReadStream(maxAllowedSize: maxFileSize);
+            var result = await fileManagerService.SaveFileWithContentAsync(
+                config.FileName,
+                currentPath,
+                stream,
+                config.File.ContentType,
+                userId,
+                WebHostEnvironment.WebRootPath,
+                selectedClientId
+            );
+
+            if (result == null)
+            {
+                throw new Exception($"Failed to upload file {config.FileName}");
+            }
+
+            // Update UI status
+            statusMessage = $"File {config.FileName} uploaded successfully";
+            await LoadCurrentDirectory();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al subir archivo {config.FileName}: {ex.Message}");
+            statusMessage = $"Error uploading file {config.FileName}: {ex.Message}";
+            Console.WriteLine($"Upload error for {config.FileName}: {ex}");
             throw;
+        }
+        finally
+        {
+            StateHasChanged();
         }
     }
 
@@ -1553,15 +1617,15 @@
             // Por ahora, actualizamos localmente
             selectedFileForEdit.Title = editFileTitle.Trim();
             selectedFileForEdit.ExpirationDate = editFileExpirationDate;
-            
+
             // Simular llamada al servidor
             await Task.Delay(300);
-            
+
             CloseEditFileModal();
-            
+
             // Mostrar mensaje de éxito (opcional)
             // Aquí podrías agregar un toast o notificación
-            
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -1575,7 +1639,7 @@
     private void ShowMassEditModal()
     {
         if (!HasSelectedFiles) return;
-        
+
         massEditExpirationDate = null;
         removeExistingDates = false;
         showMassEditModal = true;
@@ -1612,12 +1676,12 @@
             await Task.Delay(500);
 
             CloseMassEditModal();
-            
+
             var affectedCount = selectedItems.Count(f => !f.IsDirectory);
-            statusMessage = removeExistingDates 
+            statusMessage = removeExistingDates
                 ? $"Se quitaron las fechas de expiración de {affectedCount} archivo(s)."
                 : $"Se aplicó la fecha de expiración a {affectedCount} archivo(s).";
-            
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -1629,7 +1693,7 @@
     private string GetTimeUntilExpiration(DateTime expirationDate)
     {
         var timeSpan = expirationDate - DateTime.Now;
-        
+
         if (timeSpan.TotalDays >= 1)
             return $"{(int)timeSpan.TotalDays} día(s)";
         else if (timeSpan.TotalHours >= 1)
@@ -1684,12 +1748,12 @@
     private async Task OnDrop(DragEventArgs e)
     {
         isDragOver = false;
-        
+
         // En Blazor, el drag and drop directo de archivos es limitado
         // Por ahora, simplemente mostramos el modal de subida de archivos
         // Los usuarios pueden usar el botón "Subir" para seleccionar archivos
         showFileUploadConfigModal = true;
-        
+
         StateHasChanged();
     }
 
