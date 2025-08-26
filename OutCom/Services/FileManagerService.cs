@@ -92,6 +92,19 @@ namespace OutCom.Services
 
         public async Task<FileItem?> CreateFolderAsync(string name, string path, string ownerId, string? clientId = null)
         {
+            // Validación: toda carpeta debe tener un cliente asignado
+            if (string.IsNullOrEmpty(clientId))
+            {
+                throw new ArgumentException("Toda carpeta debe estar asignada a un cliente específico.", nameof(clientId));
+            }
+
+            // Validar que el cliente existe y está activo
+            var client = await _context.Users.FirstOrDefaultAsync(u => u.Id == clientId && u.UserType == UserType.Client && u.IsActive);
+            if (client == null)
+            {
+                throw new ArgumentException("El cliente especificado no existe o no está activo.", nameof(clientId));
+            }
+
             var folder = new FileItem
             {
                 Name = name,
@@ -110,6 +123,29 @@ namespace OutCom.Services
 
         public async Task<FileItem?> SaveFileAsync(string fileName, string path, long size, string mimeType, string ownerId, string? clientId = null)
         {
+            // Validación: no permitir archivos en el directorio raíz
+            if (string.IsNullOrEmpty(path))
+            {
+                throw new ArgumentException("No se pueden subir archivos directamente en el directorio raíz. Los archivos deben subirse dentro de una carpeta asignada a un cliente.", nameof(path));
+            }
+
+            // Validación: verificar que la carpeta de destino existe y tiene cliente asignado
+            var parentFolder = await _context.FileItems
+                .FirstOrDefaultAsync(f => f.Path == path && f.Type == FileItemType.Folder && !f.IsDeleted);
+            
+            if (parentFolder == null)
+            {
+                throw new ArgumentException("La carpeta de destino no existe.", nameof(path));
+            }
+
+            if (string.IsNullOrEmpty(parentFolder.ClientId))
+            {
+                throw new ArgumentException("No se pueden subir archivos a carpetas que no tienen un cliente asignado.", nameof(path));
+            }
+
+            // Usar el clientId de la carpeta padre
+            clientId = parentFolder.ClientId;
+
             var file = new FileItem
             {
                 Name = fileName,
@@ -132,6 +168,29 @@ namespace OutCom.Services
         {
             try
             {
+                // Validación: no permitir archivos en el directorio raíz
+                if (string.IsNullOrEmpty(path))
+                {
+                    throw new ArgumentException("No se pueden subir archivos directamente en el directorio raíz. Los archivos deben subirse dentro de una carpeta asignada a un cliente.", nameof(path));
+                }
+
+                // Validación: verificar que la carpeta de destino existe y tiene cliente asignado
+                var parentFolder = await _context.FileItems
+                    .FirstOrDefaultAsync(f => f.Path == path && f.Type == FileItemType.Folder && !f.IsDeleted);
+                
+                if (parentFolder == null)
+                {
+                    throw new ArgumentException("La carpeta de destino no existe.", nameof(path));
+                }
+
+                if (string.IsNullOrEmpty(parentFolder.ClientId))
+                {
+                    throw new ArgumentException("No se pueden subir archivos a carpetas que no tienen un cliente asignado.", nameof(path));
+                }
+
+                // Usar el clientId de la carpeta padre
+                clientId = parentFolder.ClientId;
+
                 // Crear el directorio del usuario si no existe
                 var userDirectory = Path.Combine(webRootPath, "UserFiles", ownerId);
                 if (!Directory.Exists(userDirectory))
@@ -363,6 +422,29 @@ namespace OutCom.Services
         {
             try
             {
+                // Validación: no permitir archivos en el directorio raíz
+                if (string.IsNullOrEmpty(path))
+                {
+                    throw new ArgumentException("No se pueden subir archivos directamente en el directorio raíz. Los archivos deben subirse dentro de una carpeta asignada a un cliente.", nameof(path));
+                }
+
+                // Validación: verificar que la carpeta de destino existe y tiene cliente asignado
+                var parentFolder = await _context.FileItems
+                    .FirstOrDefaultAsync(f => f.Path == path && f.Type == FileItemType.Folder && !f.IsDeleted);
+                
+                if (parentFolder == null)
+                {
+                    throw new ArgumentException("La carpeta de destino no existe.", nameof(path));
+                }
+
+                if (string.IsNullOrEmpty(parentFolder.ClientId))
+                {
+                    throw new ArgumentException("No se pueden subir archivos a carpetas que no tienen un cliente asignado.", nameof(path));
+                }
+
+                // Usar el clientId de la carpeta padre
+                clientId = parentFolder.ClientId;
+
                 // Crear el directorio del usuario si no existe
                 var userDirectory = Path.Combine(webRootPath, "UserFiles", ownerId);
                 if (!Directory.Exists(userDirectory))

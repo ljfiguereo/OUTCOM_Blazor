@@ -34,8 +34,17 @@
                             @foreach (var (crumb, index) in GetBreadcrumbPath().Select((c, i) => (c, i)))
                             {
                                 <span class="fm-breadcrumb-separator">/</span>
-                                <button class="fm-breadcrumb-item" @onclick="() => NavigateToFolder(crumb.Path)" title="Ir a @crumb.Name">
+                                <button class="fm-breadcrumb-item" @onclick="() => NavigateToFolder(crumb.Path)" 
+                                        title="@(string.IsNullOrEmpty(crumb.ClientName) ? $"Ir a {crumb.Name}" : $"Ir a {crumb.Name} (Cliente: {crumb.ClientName})")
+                                        ">
                                     @crumb.Name
+                                    @if (!string.IsNullOrEmpty(crumb.ClientName))
+                                    {
+                                        <span class="fm-breadcrumb-client" title="Cliente: @crumb.ClientName">
+                                            <i class="fe fe-user"></i>
+                                            @crumb.ClientName
+                                        </span>
+                                    }
                                 </button>
                             }
                         </div>
@@ -63,21 +72,15 @@
                         <span class="fm-btn-text">Nueva carpeta</span>
                     </button>
 
-                    <button class="fm-action-btn fm-btn-upload mb-0" title="Subir archivos">
+                    <button class="fm-action-btn fm-btn-upload mb-0" title="@(IsInRootDirectory ? "No se pueden subir archivos en la raíz. Selecciona una carpeta." : "Subir archivos")" disabled="@IsInRootDirectory">
                         <i class="fe fe-upload"></i>
                         <span class="fm-btn-text">Subir</span>
-                        <InputFile OnChange="HandleMultipleFilesSelected" multiple class="fm-file-input" />
+                        <InputFile OnChange="HandleMultipleFilesSelected" multiple class="fm-file-input" disabled="@IsInRootDirectory" />
                     </button>
                 </div>
 
                 <!-- Acciones contextuales (aparecen cuando hay selección) -->
                 <div class="fm-contextual-actions @(HasSelectedItems ? "visible" : "hidden")">
-                    <button class="fm-action-btn fm-btn-share" @onclick="ShareSelectedItems" 
-                            disabled="@(!HasSelectedItems)" title="Compartir elementos">
-                        <i class="fe fe-share-2"></i>
-                        <span class="fm-btn-text">Compartir</span>
-                    </button>
-
                     <button class="fm-action-btn fm-btn-edit" @onclick="ShowMassEditModal" 
                             disabled="@(!HasSelectedFiles)" title="Editar fechas">
                         <i class="fe fe-calendar"></i>
@@ -103,10 +106,6 @@
                             @onclick="@(() => SetViewMode("list"))" title="Vista de lista">
                         <i class="fe fe-list"></i>
                     </button>
-                    <button class="fm-view-btn @(viewMode == "details" ? "active" : "")" 
-                            @onclick="@(() => SetViewMode("details"))" title="Vista detallada">
-                        <i class="fe fe-menu"></i>
-                    </button>
                 </div>
             </div>
         </div>
@@ -125,9 +124,17 @@
         </div>
 
         <!-- Panel principal de contenido -->
-        <div class="content-panel" @ondrop="OnDrop" @ondragover="OnDragOver" @ondragenter="OnDragEnter" @ondragleave="OnDragLeave">
+        <div class="content-panel" @ondrop="@(IsInRootDirectory ? null : OnDrop)" @ondragover="@(IsInRootDirectory ? null : OnDragOver)" @ondragenter="@(IsInRootDirectory ? null : OnDragEnter)" @ondragleave="@(IsInRootDirectory ? null : OnDragLeave)">
             <!-- Área de arrastrar y soltar -->
-            <div class="drop-zone @(isDragOver ? "drag-over" : "")">
+            <div class="drop-zone @(isDragOver && !IsInRootDirectory ? "drag-over" : "") @(IsInRootDirectory ? "disabled" : "")">
+                @if (IsInRootDirectory)
+                {
+                    <div class="alert alert-warning">
+                        <i class="fe fe-alert-triangle"></i>
+                        <strong>Restricción de subida:</strong> No se pueden subir archivos directamente en la raíz. Por favor, selecciona o crea una carpeta primero.
+                    </div>
+                }
+                
                 @if (isUploading)
                 {
                     <div class="upload-progress">
@@ -173,8 +180,16 @@
                 {
                     <div class="empty-folder">
                         <i class="fe fe-folder" style="font-size: 4rem; color: #ccc;"></i>
-                        <p class="text-muted">Esta carpeta está vacía</p>
-                        <p class="text-muted small">Arrastra archivos aquí o usa el botón "Subir" para agregar contenido</p>
+                        @if (IsInRootDirectory)
+                        {
+                            <p class="text-muted">No hay carpetas creadas</p>
+                            <p class="text-muted small">Crea una carpeta para comenzar a organizar tus archivos</p>
+                        }
+                        else
+                        {
+                            <p class="text-muted">Esta carpeta está vacía</p>
+                            <p class="text-muted small">Arrastra archivos aquí o usa el botón "Subir" para agregar contenido</p>
+                        }
                     </div>
                 }
             </div>
@@ -197,10 +212,24 @@
                         <label class="form-label">Nombre de la carpeta:</label>
                         <input type="text" class="form-control" @bind="newFolderName" placeholder="Ingresa el nombre" />
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cliente asignado: <span class="text-danger">*</span></label>
+                        <select class="form-select" @bind="selectedClientIdForNewFolder" required>
+                            <option value="">Selecciona un cliente...</option>
+                            @foreach (var client in availableClients)
+                            {
+                                <option value="@client.Id">@client.FirstName @client.LastName</option>
+                            }
+                        </select>
+                        <small class="text-muted">Cada carpeta debe estar asignada a un cliente específico</small>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="() => showCreateFolderModal = false">Cancelar</button>
-                    <button class="btn btn-primary" @onclick="CreateFolder" disabled="@string.IsNullOrWhiteSpace(newFolderName)">Crear</button>
+                    <button class="btn btn-primary" @onclick="CreateFolder" 
+                            disabled="@(string.IsNullOrWhiteSpace(newFolderName) || string.IsNullOrEmpty(selectedClientIdForNewFolder))">
+                        Crear
+                    </button>
                 </div>
             </div>
         </div>
@@ -672,6 +701,10 @@
     private bool isUploading = false;
     private bool isDragOver = false;
     private string? statusMessage;
+    
+    // Variables para manejo de clientes
+    private List<ApplicationUser> availableClients = new();
+    private string? selectedClientIdForNewFolder;
 
     // Colecciones de datos
     private List<FileSystemItem> currentItems = new();
@@ -704,6 +737,7 @@
     // Propiedades calculadas
     private bool HasSelectedItems => selectedItems.Any();
     private bool isAllSelected => currentItems.Any() && selectedItems.Count == currentItems.Count;
+    private bool IsInRootDirectory => string.IsNullOrEmpty(currentPath);
 
     // Clases auxiliares
     public class FileSystemItem
@@ -717,6 +751,8 @@
         public DateTime ModifiedDate { get; set; }
         public string? Title { get; set; }
         public DateTime? ExpirationDate { get; set; }
+        public string? ClientId { get; set; }
+        public string? ClientName { get; set; }
     }
 
     public class DirectoryItem
@@ -731,6 +767,8 @@
     {
         public string Name { get; set; } = "";
         public string Path { get; set; } = "";
+        public string? ClientName { get; set; }
+        public string? ClientId { get; set; }
     }
 
     public class FileUploadConfig
@@ -749,8 +787,22 @@
 
         if (!string.IsNullOrEmpty(userId))
         {
+            await LoadAvailableClients();
             await LoadCurrentDirectory();
             await LoadDirectoryStructure();
+            await UpdateSelectedClientId();
+        }
+    }
+    
+    private async Task LoadAvailableClients()
+    {
+        try
+        {
+            availableClients = await fileManagerService.GetClientsAsync();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error al cargar clientes: {ex.Message}";
         }
     }
 
@@ -769,10 +821,13 @@
                 IsDirectory = f.Type == FileItemType.Folder,
                 Size = f.Size,
                 Extension = Path.GetExtension(f.Name) ?? "",
-                ModifiedDate = f.ModifiedAt
+                ModifiedDate = f.ModifiedAt,
+                ClientId = f.ClientId,
+                ClientName = GetClientNameById(f.ClientId) // Obtener nombre del cliente por ID
             }).ToList();
 
             selectedItems.Clear();
+            await UpdateSelectedClientId();
             StateHasChanged();
         }
         catch (Exception ex)
@@ -837,6 +892,13 @@
 
     private async Task HandleMultipleFilesSelected(InputFileChangeEventArgs e)
     {
+        if (IsInRootDirectory)
+        {
+            statusMessage = "No se pueden subir archivos directamente en la raíz. Por favor, selecciona o crea una carpeta primero.";
+            StateHasChanged();
+            return;
+        }
+        
         await PrepareFilesForUpload(e.GetMultipleFiles());
     }
 
@@ -877,6 +939,7 @@
     {
         currentPath = folderPath;
         await LoadCurrentDirectory();
+        await UpdateSelectedClientId();
     }
 
     private void SetViewMode(string mode)
@@ -901,12 +964,13 @@
     private void ShowCreateFolderModal()
     {
         newFolderName = "";
+        selectedClientIdForNewFolder = "";
         showCreateFolderModal = true;
     }
 
     private async Task CreateFolder()
     {
-        if (string.IsNullOrWhiteSpace(newFolderName) || string.IsNullOrEmpty(userId))
+        if (string.IsNullOrWhiteSpace(newFolderName) || string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(selectedClientIdForNewFolder))
             return;
 
         try
@@ -915,12 +979,15 @@
                 ? newFolderName
                 : $"{currentPath}/{newFolderName}";
 
-            await fileManagerService.CreateFolderAsync(newFolderName, currentPath, userId, selectedClientId);
+            await fileManagerService.CreateFolderAsync(newFolderName, currentPath, userId, selectedClientIdForNewFolder);
 
             showCreateFolderModal = false;
             await LoadCurrentDirectory();
             await LoadDirectoryStructure();
-            statusMessage = $"Carpeta '{newFolderName}' creada exitosamente.";
+            
+            var selectedClient = availableClients.FirstOrDefault(c => c.Id == selectedClientIdForNewFolder);
+            var clientName = selectedClient != null ? $"{selectedClient.FirstName} {selectedClient.LastName}" : "Cliente";
+            statusMessage = $"Carpeta '{newFolderName}' creada exitosamente y asignada a {clientName}.";
         }
         catch (Exception ex)
         {
@@ -1000,10 +1067,16 @@
                 ? part
                 : $"{currentBreadcrumbPath}/{part}";
 
+            // Buscar información del cliente para esta carpeta
+            var folderItem = currentItems.FirstOrDefault(item => 
+                item.IsDirectory && item.Path == currentBreadcrumbPath);
+
             breadcrumbs.Add(new BreadcrumbItem
             {
                 Name = part,
-                Path = currentBreadcrumbPath
+                Path = currentBreadcrumbPath,
+                ClientName = folderItem?.ClientName,
+                ClientId = folderItem?.ClientId
             });
         }
 
@@ -1085,7 +1158,17 @@
 
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", $"file-item-minimal {(isSelected ? "selected" : "")}");
-            builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleFileSelection(item)));
+            
+            // Para carpetas usar doble click, para archivos usar click simple
+            if (item.IsDirectory)
+            {
+                builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleFileSelection(item)));
+                builder.AddAttribute(sequence++, "ondblclick", EventCallback.Factory.Create(this, () => NavigateToFolder(item.Path)));
+            }
+            else
+            {
+                builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleFileSelection(item)));
+            }
 
             // Checkbox de selección minimalista
             builder.OpenElement(sequence++, "div");
@@ -1162,6 +1245,18 @@
                 builder.AddContent(sequence++, FormatFileSize(item.Size));
                 builder.CloseElement();
             }
+            else if (!string.IsNullOrEmpty(item.ClientName))
+            {
+                // Mostrar cliente para carpetas
+                builder.OpenElement(sequence++, "span");
+                builder.AddAttribute(sequence++, "class", "file-client-minimal");
+                builder.AddAttribute(sequence++, "title", $"Cliente asignado: {item.ClientName}");
+                builder.OpenElement(sequence++, "i");
+                builder.AddAttribute(sequence++, "class", "fe fe-user");
+                builder.CloseElement();
+                builder.AddContent(sequence++, $" {item.ClientName}");
+                builder.CloseElement();
+            }
 
             if (item.ExpirationDate.HasValue)
             {
@@ -1232,6 +1327,11 @@
         builder.AddContent(sequence++, "Fecha modificación");
         builder.CloseElement();
 
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "file-list-cell client-cell");
+        builder.AddContent(sequence++, "Cliente");
+        builder.CloseElement();
+
         builder.CloseElement(); // file-list-header
 
         // Items
@@ -1241,7 +1341,17 @@
 
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", $"file-list-row {(isSelected ? "selected" : "")}");
-            builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleFileSelection(item)));
+            
+            // Para carpetas usar doble click, para archivos usar click simple
+            if (item.IsDirectory)
+            {
+                builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleFileSelection(item)));
+                builder.AddAttribute(sequence++, "ondblclick", EventCallback.Factory.Create(this, () => NavigateToFolder(item.Path)));
+            }
+            else
+            {
+                builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleFileSelection(item)));
+            }
 
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-list-cell checkbox-cell");
@@ -1297,6 +1407,32 @@
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "file-list-cell date-cell");
             builder.AddContent(sequence++, item.ModifiedDate.ToString("dd/MM/yyyy HH:mm"));
+            builder.CloseElement();
+
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "file-list-cell client-cell");
+            if (item.IsDirectory && !string.IsNullOrEmpty(item.ClientName))
+            {
+                builder.OpenElement(sequence++, "span");
+                builder.AddAttribute(sequence++, "class", "badge bg-primary");
+                builder.AddAttribute(sequence++, "title", $"Cliente asignado: {item.ClientName}");
+                builder.OpenElement(sequence++, "i");
+                builder.AddAttribute(sequence++, "class", "fe fe-user me-1");
+                builder.CloseElement();
+                builder.AddContent(sequence++, item.ClientName);
+                builder.CloseElement();
+            }
+            else if (!item.IsDirectory)
+            {
+                builder.AddContent(sequence++, "-");
+            }
+            else
+            {
+                builder.OpenElement(sequence++, "span");
+                builder.AddAttribute(sequence++, "class", "text-muted");
+                builder.AddContent(sequence++, "Sin asignar");
+                builder.CloseElement();
+            }
             builder.CloseElement();
 
             builder.CloseElement(); // file-list-row
@@ -1809,5 +1945,40 @@
         }
 
         StateHasChanged();
+    }
+
+    private string GetClientNameById(string? clientId)
+    {
+        if (string.IsNullOrEmpty(clientId))
+            return "Sin asignar";
+
+        var client = availableClients?.FirstOrDefault(c => c.Id == clientId);
+        return client != null ? $"{client.FirstName} {client.LastName}" : "Cliente no encontrado";
+    }
+
+    private async Task UpdateSelectedClientId()
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(currentPath))
+        {
+            selectedClientId = null;
+            return;
+        }
+
+        try
+        {
+            // Obtener la carpeta raíz del path actual
+            var rootFolderPath = currentPath.Split('/')[0];
+            
+            // Buscar la carpeta raíz en los archivos del usuario
+            var allFiles = await fileManagerService.GetUserFilesAsync(userId);
+            var rootFolder = allFiles.FirstOrDefault(f => f.Type == FileItemType.Folder && f.Path == rootFolderPath);
+            
+            selectedClientId = rootFolder?.ClientId;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating selected client ID: {ex.Message}");
+            selectedClientId = null;
+        }
     }
 }
