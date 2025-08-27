@@ -81,6 +81,13 @@
                         <span class="fm-btn-text">Subir</span>
                         <InputFile OnChange="HandleMultipleFilesSelected" multiple class="fm-file-input" disabled="@(!isAdmin || IsInRootDirectory)" />
                     </button>
+
+                    <button class="fm-action-btn fm-btn-print" @onclick="GeneratePDF" 
+                            title="@(GetPrintButtonTitle())"
+                            disabled="@(isGeneratingPDF || !HasImageFiles())">
+                        <i class="fe fe-printer"></i>
+                        <span class="fm-btn-text">@(isGeneratingPDF ? "Generando..." : "Imprimir PDF")</span>
+                    </button>
                 </div>
 
                 <!-- Acciones contextuales (aparecen cuando hay selección) -->
@@ -768,6 +775,9 @@
     private DateTime? editFileExpirationDate = null;
     private DateTime? massEditExpirationDate = null;
     private bool removeExistingDates = false;
+
+    // Variables para generación de PDF
+    private bool isGeneratingPDF = false;
 
     // Configuración de archivos para subir
     private List<IBrowserFile> pendingFiles = new();
@@ -1626,7 +1636,11 @@
 
     private List<FileSystemItem> GetImageFiles()
     {
-        return currentItems.Where(item => IsImageFile(item)).ToList();
+        var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
+        return currentItems.Where(item => 
+            !item.IsDirectory && 
+            imageExtensions.Contains(item.Extension.ToLower())
+        ).ToList();
     }
 
     private int GetCurrentImageIndex()
@@ -2097,6 +2111,57 @@
         {
             Console.WriteLine($"Error updating selected client ID: {ex.Message}");
             selectedClientId = null;
+        }
+    }
+
+    // Métodos para funcionalidad de PDF
+    private string GetPrintButtonTitle()
+    {
+        if (isGeneratingPDF)
+            return "Generando PDF...";
+        
+        if (!HasImageFiles())
+            return "No hay imágenes para imprimir";
+        
+        var imageCount = GetImageFiles().Count;
+        return $"Generar PDF con {imageCount} imagen{(imageCount != 1 ? "es" : "")}";
+    }
+
+    private bool HasImageFiles()
+    {
+        return GetImageFiles().Any();
+    }
+
+
+
+    private async Task GeneratePDF()
+    {
+        if (isGeneratingPDF || !HasImageFiles())
+            return;
+
+        try
+        {
+            isGeneratingPDF = true;
+            StateHasChanged();
+
+            var imageFiles = GetImageFiles();
+            var folderName = GetCurrentFolderDisplayName();
+            
+            // Llamar a JavaScript para generar el PDF
+            await JSRuntime.InvokeVoidAsync("generateImagesPDF", imageFiles.Select(img => new {
+                name = img.Name,
+                url = GetImagePreviewUrl(img)
+            }).ToArray(), folderName);
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error al generar PDF: {ex.Message}";
+            StateHasChanged();
+        }
+        finally
+        {
+            isGeneratingPDF = false;
+            StateHasChanged();
         }
     }
 }
