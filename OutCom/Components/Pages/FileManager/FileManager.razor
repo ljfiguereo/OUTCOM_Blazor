@@ -127,13 +127,13 @@
         <div class="content-panel" @ondrop="@(IsInRootDirectory ? null : OnDrop)" @ondragover="@(IsInRootDirectory ? null : OnDragOver)" @ondragenter="@(IsInRootDirectory ? null : OnDragEnter)" @ondragleave="@(IsInRootDirectory ? null : OnDragLeave)">
             <!-- Área de arrastrar y soltar -->
             <div class="drop-zone @(isDragOver && !IsInRootDirectory ? "drag-over" : "") @(IsInRootDirectory ? "disabled" : "")">
-                @if (IsInRootDirectory)
+                @*@if (IsInRootDirectory)
                 {
                     <div class="alert alert-warning">
                         <i class="fe fe-alert-triangle"></i>
                         <strong>Restricción de subida:</strong> No se pueden subir archivos directamente en la raíz. Por favor, selecciona o crea una carpeta primero.
                     </div>
-                }
+                }*@
 
                 @if (isUploading)
                 {
