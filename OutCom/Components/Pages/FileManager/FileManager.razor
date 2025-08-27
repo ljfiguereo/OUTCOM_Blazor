@@ -15,7 +15,7 @@
 
 <PageTitle>Administrador de Archivos</PageTitle>
 
-<link href="~/Components/Pages/FileManager/filemanager-styles.css" rel="stylesheet" />
+<link href="/css/filemanager-fixes.css" rel="stylesheet" />
 
 <div class="file-manager-container">
     <!-- Barra de herramientas minimalista y moderna -->
@@ -34,7 +34,7 @@
                             @foreach (var (crumb, index) in GetBreadcrumbPath().Select((c, i) => (c, i)))
                             {
                                 <span class="fm-breadcrumb-separator">/</span>
-                                <button class="fm-breadcrumb-item" @onclick="() => NavigateToFolder(crumb.Path)" 
+                                <button class="fm-breadcrumb-item" @onclick="() => NavigateToFolder(crumb.Path)"
                                         title="@(string.IsNullOrEmpty(crumb.ClientName) ? $"Ir a {crumb.Name}" : $"Ir a {crumb.Name} (Cliente: {crumb.ClientName})")
                                         ">
                                     @crumb.Name
@@ -81,13 +81,13 @@
 
                 <!-- Acciones contextuales (aparecen cuando hay selección) -->
                 <div class="fm-contextual-actions @(HasSelectedItems ? "visible" : "hidden")">
-                    <button class="fm-action-btn fm-btn-edit" @onclick="ShowMassEditModal" 
+                    <button class="fm-action-btn fm-btn-edit" @onclick="ShowMassEditModal"
                             disabled="@(!HasSelectedFiles)" title="Editar fechas">
                         <i class="fe fe-calendar"></i>
                         <span class="fm-btn-text">Editar fechas</span>
                     </button>
 
-                    <button class="fm-action-btn fm-btn-delete" @onclick="DeleteSelectedItems" 
+                    <button class="fm-action-btn fm-btn-delete" @onclick="DeleteSelectedItems"
                             disabled="@(!HasSelectedItems)" title="Eliminar elementos">
                         <i class="fe fe-trash-2"></i>
                         <span class="fm-btn-text">Eliminar</span>
@@ -98,11 +98,11 @@
             <!-- Controles de vista -->
             <div class="fm-view-controls">
                 <div class="fm-view-selector">
-                    <button class="fm-view-btn @(viewMode == "grid" ? "active" : "")" 
+                    <button class="fm-view-btn @(viewMode == "grid" ? "active" : "")"
                             @onclick="@(() => SetViewMode("grid"))" title="Vista de cuadrícula">
                         <i class="fe fe-grid"></i>
                     </button>
-                    <button class="fm-view-btn @(viewMode == "list" ? "active" : "")" 
+                    <button class="fm-view-btn @(viewMode == "list" ? "active" : "")"
                             @onclick="@(() => SetViewMode("list"))" title="Vista de lista">
                         <i class="fe fe-list"></i>
                     </button>
@@ -134,7 +134,7 @@
                         <strong>Restricción de subida:</strong> No se pueden subir archivos directamente en la raíz. Por favor, selecciona o crea una carpeta primero.
                     </div>
                 }
-                
+
                 @if (isUploading)
                 {
                     <div class="upload-progress">
@@ -226,7 +226,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="() => showCreateFolderModal = false">Cancelar</button>
-                    <button class="btn btn-primary" @onclick="CreateFolder" 
+                    <button class="btn btn-primary" @onclick="CreateFolder"
                             disabled="@(string.IsNullOrWhiteSpace(newFolderName) || string.IsNullOrEmpty(selectedClientIdForNewFolder))">
                         Crear
                     </button>
@@ -296,14 +296,14 @@
                     <div class="d-flex gap-2">
                         @if (GetImageFiles().Count > 1)
                         {
-                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => NavigateImage(-1)" 
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => NavigateImage(-1)"
                                     disabled="@(!CanNavigateImage(-1))" title="Imagen anterior">
                                 <i class="fe fe-chevron-left"></i>
                             </button>
                             <span class="align-self-center small text-muted">
                                 @(GetCurrentImageIndex() + 1) de @GetImageFiles().Count
                             </span>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => NavigateImage(1)" 
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => NavigateImage(1)"
                                     disabled="@(!CanNavigateImage(1))" title="Imagen siguiente">
                                 <i class="fe fe-chevron-right"></i>
                             </button>
@@ -313,18 +313,18 @@
                 </div>
                 <div class="modal-body text-center p-2">
                     <div class="image-preview-container position-relative">
-                        <img src="@GetImagePreviewUrl(selectedImageForPreview)" 
-                             alt="@selectedImageForPreview.Name" 
-                             class="img-fluid image-preview-main" 
-                             style="max-height: 75vh; object-fit: contain; cursor: zoom-in;" 
+                        <img src="@GetImagePreviewUrl(selectedImageForPreview)"
+                             alt="@selectedImageForPreview.Name"
+                             class="img-fluid image-preview-main"
+                             style="max-height: 75vh; object-fit: contain; cursor: zoom-in;"
                              @onclick="ToggleImageZoom" />
-                        
+
                         @if (isImageZoomed)
                         {
                             <div class="image-zoom-overlay" @onclick="ToggleImageZoom">
-                                <img src="@GetImagePreviewUrl(selectedImageForPreview)" 
-                                     alt="@selectedImageForPreview.Name" 
-                                     class="img-fluid" 
+                                <img src="@GetImagePreviewUrl(selectedImageForPreview)"
+                                     alt="@selectedImageForPreview.Name"
+                                     class="img-fluid"
                                      style="max-width: 100%; max-height: 100%; object-fit: contain;" />
                             </div>
                         }
@@ -334,9 +334,9 @@
                     <div class="d-flex justify-content-between w-100 align-items-center">
                         <div class="image-info">
                             <small class="text-muted">
-                                <i class="fe fe-info"></i> 
-                                @selectedImageForPreview.Name | 
-                                Tamaño: @FormatFileSize(selectedImageForPreview.Size) | 
+                                <i class="fe fe-info"></i>
+                                @selectedImageForPreview.Name |
+                                Tamaño: @FormatFileSize(selectedImageForPreview.Size) |
                                 Modificado: @selectedImageForPreview.ModifiedDate.ToString("dd/MM/yyyy HH:mm")
                                 @if (selectedImageForPreview.ExpirationDate.HasValue)
                                 {
@@ -385,17 +385,17 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">Prefijo para títulos</label>
-                                <input type="text" class="form-control" @bind="massTitlePrefix" 
+                                <input type="text" class="form-control" @bind="massTitlePrefix"
                                        placeholder="Ej: Documento_" />
                                 <small class="text-muted">Se agregará al inicio de cada título</small>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Fecha de expiración común</label>
-                                <input type="datetime-local" class="form-control" @bind="massExpirationDate" 
+                                <input type="datetime-local" class="form-control" @bind="massExpirationDate"
                                        min="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
                             </div>
                             <div class="col-md-4 d-flex align-items-end gap-2">
-                                <button class="btn btn-outline-primary" @onclick="ApplyMassConfiguration" 
+                                <button class="btn btn-outline-primary" @onclick="ApplyMassConfiguration"
                                         disabled="@(string.IsNullOrEmpty(massTitlePrefix) && massExpirationDate == null)">
                                     <i class="fe fe-copy"></i> Aplicar
                                 </button>
@@ -405,7 +405,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Lista de archivos para configurar -->
                     <div class="upload-config-container">
                         @foreach (var (fileConfig, index) in pendingFileConfigs.Select((config, i) => (config, i)))
@@ -431,13 +431,13 @@
                                         }
                                     </div>
                                 </div>
-                                
+
                                 <div class="row g-3">
                                     <div class="col-md-8">
                                         <label class="form-label">Título del archivo <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control @(string.IsNullOrWhiteSpace(fileConfig.Title) ? "is-invalid" : "is-valid")" 
+                                        <input type="text" class="form-control @(string.IsNullOrWhiteSpace(fileConfig.Title) ? "is-invalid" : "is-valid")"
                                                @bind="fileConfig.Title" @bind:event="oninput"
-                                               placeholder="Ingrese un título descriptivo" 
+                                               placeholder="Ingrese un título descriptivo"
                                                maxlength="100" required />
                                         @if (string.IsNullOrWhiteSpace(fileConfig.Title))
                                         {
@@ -451,7 +451,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label">Fecha de expiración</label>
-                                        <input type="datetime-local" class="form-control" @bind="fileConfig.ExpirationDate" 
+                                        <input type="datetime-local" class="form-control" @bind="fileConfig.ExpirationDate"
                                                min="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
                                         @if (fileConfig.ExpirationDate.HasValue)
                                         {
@@ -468,7 +468,7 @@
                             </div>
                         }
                     </div>
-                    
+
                     <!-- Resumen de configuración -->
                     <div class="config-summary mt-4 p-3 bg-azure-lightest bg-opacity-10 border border-info">
                         <h6 class="text-info"><i class="fe fe-info"></i> Resumen de Configuración</h6>
@@ -494,14 +494,14 @@
                             @if (!AreAllFileConfigsValid())
                             {
                                 <small class="text-danger">
-                                    <i class="fe fe-alert-triangle"></i> 
+                                    <i class="fe fe-alert-triangle"></i>
                                     Complete todos los títulos obligatorios para continuar
                                 </small>
                             }
                             else
                             {
                                 <small class="text-success">
-                                    <i class="fe fe-check-circle"></i> 
+                                    <i class="fe fe-check-circle"></i>
                                     Todos los archivos están listos para subir
                                 </small>
                             }
@@ -510,7 +510,7 @@
                             <button class="btn btn-outline-secondary" @onclick="() => CancelFileUpload()">
                                 <i class="fe fe-x"></i> Cancelar
                             </button>
-                            <button class="btn btn-primary" @onclick="() => ConfirmFileUpload()" 
+                            <button class="btn btn-primary" @onclick="() => ConfirmFileUpload()"
                                     disabled="@(!AreAllFileConfigsValid())">
                                 <i class="fe fe-upload"></i> Subir @pendingFileConfigs.Count Archivo(s)
                             </button>
@@ -539,21 +539,21 @@
                     <div class="edit-file-container">
                         <div class="mb-3">
                             <label class="form-label">Nombre del archivo</label>
-                            <input type="text" class="form-control" value="@selectedFileForEdit.Name" readonly 
+                            <input type="text" class="form-control" value="@selectedFileForEdit.Name" readonly
                                    style="background-color: #f8f9fa;" />
                             <small class="text-muted">El nombre del archivo no se puede cambiar</small>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label class="form-label">Título personalizado <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" @bind="editFileTitle" 
+                            <input type="text" class="form-control" @bind="editFileTitle"
                                    placeholder="Ingrese un título descriptivo" required />
                             @if (string.IsNullOrWhiteSpace(editFileTitle))
                             {
                                 <small class="text-danger">El título es obligatorio</small>
                             }
                         </div>
-                        
+
                         <div class="mb-3">
                             <label class="form-label">Fecha de expiración</label>
                             <input type="datetime-local" class="form-control" @bind="editFileExpirationDate" />
@@ -562,17 +562,17 @@
                             {
                                 <div class="mt-2">
                                     <small class="text-info">
-                                        <i class="fe fe-clock"></i> 
+                                        <i class="fe fe-clock"></i>
                                         El archivo expirará el @editFileExpirationDate.Value.ToString("dd/MM/yyyy HH:mm")
                                     </small>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" 
+                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
                                             @onclick="() => ClearExpirationDate()">
                                         <i class="fe fe-x"></i> Quitar fecha
                                     </button>
                                 </div>
                             }
                         </div>
-                        
+
                         <div class="file-info-section p-3 bg-azure-lightest">
                             <h6><i class="fe fe-info"></i> Información del archivo</h6>
                             <div class="row">
@@ -590,7 +590,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="() => CloseEditFileModal()">Cancelar</button>
-                    <button class="btn btn-primary" @onclick="() => SaveFileProperties()" 
+                    <button class="btn btn-primary" @onclick="() => SaveFileProperties()"
                             disabled="@(string.IsNullOrWhiteSpace(editFileTitle))">
                         <i class="fe fe-save"></i> Guardar Cambios
                     </button>
@@ -619,13 +619,13 @@
                             <i class="fe fe-info"></i>
                             Se aplicará la fecha de expiración a <strong>@selectedItems.Count archivo(s)</strong> seleccionado(s).
                         </div>
-                        
+
                         <div class="mb-3">
                             <label class="form-label">Nueva fecha de expiración</label>
                             <input type="datetime-local" class="form-control" @bind="massEditExpirationDate" />
                             <small class="text-muted">Los archivos se eliminarán automáticamente en esta fecha</small>
                         </div>
-                        
+
                         @if (massEditExpirationDate.HasValue)
                         {
                             <div class="expiration-preview p-3 bg-light mb-3">
@@ -638,7 +638,7 @@
                                 </p>
                             </div>
                         }
-                        
+
                         <div class="selected-files-preview">
                             <h6><i class="fe fe-file"></i> Archivos seleccionados:</h6>
                             <div class="selected-files-list">
@@ -659,7 +659,7 @@
                                 }
                             </div>
                         </div>
-                        
+
                         <div class="mt-3">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" @bind="removeExistingDates" id="removeExistingDates">
@@ -680,7 +680,7 @@
                     }
                     else
                     {
-                        <button class="btn btn-primary" @onclick="() => ApplyMassExpirationEdit()" 
+                        <button class="btn btn-primary" @onclick="() => ApplyMassExpirationEdit()"
                                 disabled="@(!massEditExpirationDate.HasValue)">
                             <i class="fe fe-calendar"></i> Aplicar Fecha de Expiración
                         </button>
@@ -693,7 +693,7 @@
 }
 
 @code {
-        // Variables de estado principales
+    // Variables de estado principales
     private string? userId;
     private string? selectedClientId;
     private string currentPath = "";
@@ -701,7 +701,7 @@
     private bool isUploading = false;
     private bool isDragOver = false;
     private string? statusMessage;
-    
+
     // Variables para manejo de clientes
     private List<ApplicationUser> availableClients = new();
     private string? selectedClientIdForNewFolder;
@@ -793,7 +793,7 @@
             await UpdateSelectedClientId();
         }
     }
-    
+
     private async Task LoadAvailableClients()
     {
         try
@@ -898,7 +898,7 @@
             StateHasChanged();
             return;
         }
-        
+
         await PrepareFilesForUpload(e.GetMultipleFiles());
     }
 
@@ -984,7 +984,7 @@
             showCreateFolderModal = false;
             await LoadCurrentDirectory();
             await LoadDirectoryStructure();
-            
+
             var selectedClient = availableClients.FirstOrDefault(c => c.Id == selectedClientIdForNewFolder);
             var clientName = selectedClient != null ? $"{selectedClient.FirstName} {selectedClient.LastName}" : "Cliente";
             statusMessage = $"Carpeta '{newFolderName}' creada exitosamente y asignada a {clientName}.";
@@ -1068,7 +1068,7 @@
                 : $"{currentBreadcrumbPath}/{part}";
 
             // Buscar información del cliente para esta carpeta
-            var folderItem = currentItems.FirstOrDefault(item => 
+            var folderItem = currentItems.FirstOrDefault(item =>
                 item.IsDirectory && item.Path == currentBreadcrumbPath);
 
             breadcrumbs.Add(new BreadcrumbItem
@@ -1158,7 +1158,7 @@
 
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", $"file-item-minimal {(isSelected ? "selected" : "")}");
-            
+
             // Para carpetas usar doble click, para archivos usar click simple
             if (item.IsDirectory)
             {
@@ -1341,7 +1341,7 @@
 
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", $"file-list-row {(isSelected ? "selected" : "")}");
-            
+
             // Para carpetas usar doble click, para archivos usar click simple
             if (item.IsDirectory)
             {
@@ -1968,11 +1968,11 @@
         {
             // Obtener la carpeta raíz del path actual
             var rootFolderPath = currentPath.Split('/')[0];
-            
+
             // Buscar la carpeta raíz en los archivos del usuario
             var allFiles = await fileManagerService.GetUserFilesAsync(userId);
             var rootFolder = allFiles.FirstOrDefault(f => f.Type == FileItemType.Folder && f.Path == rootFolderPath);
-            
+
             selectedClientId = rootFolder?.ClientId;
         }
         catch (Exception ex)
