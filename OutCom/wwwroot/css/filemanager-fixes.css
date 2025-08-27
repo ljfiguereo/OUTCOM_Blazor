@@ -77,7 +77,7 @@
   gap: var(--fm-space-lg);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 0;
 }
 
 /* Sección superior del header */
