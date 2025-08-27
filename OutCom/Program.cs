@@ -79,26 +79,61 @@ app.MapRazorComponents<App>()
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
-// Endpoint SEGURO para que el usuario autenticado descargue SUS PROPIOS archivos
-app.MapGet("/download/{fileName}", async (HttpContext context, string fileName) =>
+// Endpoint para vista previa de imágenes
+app.MapGet("/api/files/preview", async (HttpContext context, string path) =>
 {
     if (!context.User.Identity.IsAuthenticated)
     {
         return Results.Unauthorized();
     }
 
-    var userId = context.User.FindFirst(c => c.Type.Contains("nameidentifier"))?.Value;
-    var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+    if (string.IsNullOrEmpty(path))
+    {
+        return Results.BadRequest("Path parameter is required.");
+    }
 
-    var filePath = Path.Combine(env.WebRootPath, "UserFiles", userId, fileName);
+    var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+    var filePath = Path.Combine(env.WebRootPath, "UserFiles", path);
 
     if (!File.Exists(filePath))
     {
         return Results.NotFound("Archivo no encontrado.");
     }
 
-    return Results.File(filePath, "application/octet-stream", fileName);
-}).RequireAuthorization(); // Requiere que el usuario est� logueado
+    var extension = Path.GetExtension(filePath).ToLowerInvariant();
+    var contentType = extension switch
+    {
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".png" => "image/png",
+        ".gif" => "image/gif",
+        ".bmp" => "image/bmp",
+        ".webp" => "image/webp",
+        ".svg" => "image/svg+xml",
+        _ => "application/octet-stream"
+    };
+
+    return Results.File(filePath, contentType);
+}).RequireAuthorization();
+
+// Endpoint SEGURO para que el usuario autenticado descargue SUS PROPIOS archivos
+app.MapGet("/download/{*filePath}", async (HttpContext context, string filePath) =>
+{
+    if (!context.User.Identity.IsAuthenticated)
+    {
+        return Results.Unauthorized();
+    }
+
+    var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+    var fullPath = Path.Combine(env.WebRootPath, "UserFiles", filePath);
+
+    if (!File.Exists(fullPath))
+    {
+        return Results.NotFound("Archivo no encontrado.");
+    }
+
+    var fileName = Path.GetFileName(fullPath);
+    return Results.File(fullPath, "application/octet-stream", fileName);
+}).RequireAuthorization(); // Requiere que el usuario esté logueado
 
 // Endpoint P�BLICO para acceder a archivos mediante un enlace compartido
 app.MapGet("/share/{linkId}", async (Guid linkId, HttpContext context) =>
@@ -115,7 +150,7 @@ app.MapGet("/share/{linkId}", async (Guid linkId, HttpContext context) =>
     // if (sharedLink.ExpirationDate.HasValue && sharedLink.ExpirationDate < DateTime.UtcNow) ...
 
     var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
-    var filePath = Path.Combine(env.WebRootPath, "UserFiles", sharedLink.OwnerUserId, sharedLink.FileName);
+    var filePath = Path.Combine(env.WebRootPath, "UserFiles", sharedLink.FileName);
 
     if (!File.Exists(filePath))
     {

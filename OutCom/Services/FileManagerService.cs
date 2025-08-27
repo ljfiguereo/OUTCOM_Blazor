@@ -191,17 +191,17 @@ namespace OutCom.Services
                 // Usar el clientId de la carpeta padre
                 clientId = parentFolder.ClientId;
 
-                // Crear el directorio del usuario si no existe
-                var userDirectory = Path.Combine(webRootPath, "UserFiles", ownerId);
-                if (!Directory.Exists(userDirectory))
+                // Crear el directorio base UserFiles si no existe
+                var baseDirectory = Path.Combine(webRootPath, "UserFiles");
+                if (!Directory.Exists(baseDirectory))
                 {
-                    Directory.CreateDirectory(userDirectory);
+                    Directory.CreateDirectory(baseDirectory);
                 }
 
                 // Crear subdirectorios si es necesario
                 if (!string.IsNullOrEmpty(path))
                 {
-                    var subDirectory = Path.Combine(userDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                    var subDirectory = Path.Combine(baseDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()));
                     if (!Directory.Exists(subDirectory))
                     {
                         Directory.CreateDirectory(subDirectory);
@@ -211,8 +211,8 @@ namespace OutCom.Services
                 // Generar nombre único si el archivo ya existe
                 var finalFileName = fileName;
                 var filePath = string.IsNullOrEmpty(path) 
-                    ? Path.Combine(userDirectory, finalFileName)
-                    : Path.Combine(userDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()), finalFileName);
+                    ? Path.Combine(baseDirectory, finalFileName)
+                    : Path.Combine(baseDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()), finalFileName);
                 
                 var counter = 1;
                 var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
@@ -222,8 +222,8 @@ namespace OutCom.Services
                 {
                     finalFileName = $"{nameWithoutExtension}({counter}){extension}";
                     filePath = string.IsNullOrEmpty(path) 
-                        ? Path.Combine(userDirectory, finalFileName)
-                        : Path.Combine(userDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()), finalFileName);
+                        ? Path.Combine(baseDirectory, finalFileName)
+                        : Path.Combine(baseDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()), finalFileName);
                     counter++;
                 }
 
@@ -445,17 +445,17 @@ namespace OutCom.Services
                 // Usar el clientId de la carpeta padre
                 clientId = parentFolder.ClientId;
 
-                // Crear el directorio del usuario si no existe
-                var userDirectory = Path.Combine(webRootPath, "UserFiles", ownerId);
-                if (!Directory.Exists(userDirectory))
+                // Crear el directorio base UserFiles si no existe
+                var baseDirectory = Path.Combine(webRootPath, "UserFiles");
+                if (!Directory.Exists(baseDirectory))
                 {
-                    Directory.CreateDirectory(userDirectory);
+                    Directory.CreateDirectory(baseDirectory);
                 }
 
                 // Crear subdirectorios si es necesario
                 if (!string.IsNullOrEmpty(path))
                 {
-                    var subDirectory = Path.Combine(userDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                    var subDirectory = Path.Combine(baseDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()));
                     if (!Directory.Exists(subDirectory))
                     {
                         Directory.CreateDirectory(subDirectory);
@@ -465,8 +465,8 @@ namespace OutCom.Services
                 // Generar nombre único si el archivo ya existe
                 var finalFileName = fileName;
                 var filePath = string.IsNullOrEmpty(path) 
-                    ? Path.Combine(userDirectory, finalFileName)
-                    : Path.Combine(userDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()), finalFileName);
+                    ? Path.Combine(baseDirectory, finalFileName)
+                    : Path.Combine(baseDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()), finalFileName);
                 
                 var counter = 1;
                 var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
@@ -476,8 +476,8 @@ namespace OutCom.Services
                 {
                     finalFileName = $"{nameWithoutExtension}({counter}){extension}";
                     filePath = string.IsNullOrEmpty(path) 
-                        ? Path.Combine(userDirectory, finalFileName)
-                        : Path.Combine(userDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()), finalFileName);
+                        ? Path.Combine(baseDirectory, finalFileName)
+                        : Path.Combine(baseDirectory, path.Replace("/", Path.DirectorySeparatorChar.ToString()), finalFileName);
                     counter++;
                 }
 

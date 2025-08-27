@@ -316,7 +316,7 @@
                         <img src="@GetImagePreviewUrl(selectedImageForPreview)"
                              alt="@selectedImageForPreview.Name"
                              class="img-fluid image-preview-main"
-                             style="max-height: 75vh; object-fit: contain; cursor: zoom-in;"
+                             style="max-height: 60vh; object-fit: contain; cursor: zoom-in;"
                              @onclick="ToggleImageZoom" />
 
                         @if (isImageZoomed)
@@ -1546,17 +1546,35 @@
 
     private string GetImagePreviewUrl(FileSystemItem item)
     {
-        // Construir la URL para la vista previa de la imagen
-        var relativePath = Path.Combine(currentPath, item.Name).Replace("\\", "/");
-        return $"/api/files/preview?path={Uri.EscapeDataString(relativePath)}";
+        try
+        {
+            // Use the item's Path directly since it already contains the full relative path
+            var relativePath = item.Path.Replace("\\", "/");
+            var fullPath = Path.Combine(WebHostEnvironment.WebRootPath, "UserFiles", relativePath);
+
+            if (!File.Exists(fullPath))
+            {
+                // Return a default image if file not found
+                return "/images/no-preview.png";
+            }
+
+            // Return the preview URL if file exists
+            return $"/api/files/preview?path={Uri.EscapeDataString(relativePath)}";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting image preview URL: {ex.Message}");
+            return "/images/error.png";
+        }
     }
 
     private async Task DownloadFile(FileSystemItem item)
     {
         try
         {
-            var relativePath = Path.Combine(currentPath, item.Name);
-            var downloadUrl = $"/api/files/download?path={Uri.EscapeDataString(relativePath)}";
+            // Use the item's Path directly since it already contains the full relative path
+            var relativePath = item.Path;
+            var downloadUrl = $"/download/{Uri.EscapeDataString(relativePath)}";
 
             // Usar JavaScript para iniciar la descarga
             await JSRuntime.InvokeVoidAsync("window.open", downloadUrl, "_blank");
