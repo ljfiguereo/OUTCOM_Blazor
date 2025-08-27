@@ -41,16 +41,10 @@ namespace OutCom.Models
 
         public bool IsDeleted { get; set; } = false;
 
-        [MaxLength(500)]
-        public string? Description { get; set; }
-
         [MaxLength(255)]
         public string? Title { get; set; } // Título personalizado del archivo
 
         public DateTime? ExpirationDate { get; set; } // Fecha de expiración para eliminación automática
-
-        // Propiedades para carpetas (sin navegación por ahora)
-        public int? ParentFolderId { get; set; }
 
         // Navegación simplificada
         public virtual ApplicationUser Owner { get; set; } = null!;

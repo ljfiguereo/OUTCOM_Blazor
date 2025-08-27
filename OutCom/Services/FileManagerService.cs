@@ -12,7 +12,8 @@ namespace OutCom.Services
         Task<List<ApplicationUser>> GetClientsAsync();
         Task<FileItem?> CreateFolderAsync(string name, string path, string ownerId, string? clientId = null);
         Task<FileItem?> SaveFileAsync(string fileName, string path, long size, string mimeType, string ownerId, string? clientId = null);
-        Task<FileItem?> SaveFileWithContentAsync(string fileName, string path, Stream fileStream, string mimeType, string ownerId, string webRootPath, string? clientId = null);
+        Task<FileItem?> SaveFileWithContentAsync(string fileName, string path, Stream fileStream, string mimeType, 
+            string ownerId, string webRootPath, string? clientId = null, string title = "", DateTime? ExpirationDate = null);
         Task<bool> DeleteFileItemAsync(int fileItemId, string userId);
         Task<bool> MoveFileItemAsync(int fileItemId, string newPath, string userId);
         Task<List<FileItem>> GetSelectedFileItemsAsync(List<int> fileItemIds, string userId);
@@ -164,7 +165,9 @@ namespace OutCom.Services
             return file;
         }
 
-        public async Task<FileItem?> SaveFileWithContentAsync(string fileName, string path, Stream fileStream, string mimeType, string ownerId, string webRootPath, string? clientId = null)
+        public async Task<FileItem?> SaveFileWithContentAsync(string fileName, string path, Stream fileStream, 
+            string mimeType, string ownerId, string webRootPath, string? clientId = null, 
+            string title = "", DateTime? ExpirationDate = null)
         {
             try
             {
@@ -238,6 +241,8 @@ namespace OutCom.Services
                 {
                     Name = finalFileName,
                     Path = string.IsNullOrEmpty(path) ? finalFileName : $"{path}/{finalFileName}",
+                    Title = title,
+                    ExpirationDate = ExpirationDate,
                     Type = FileItemType.File,
                     Size = fileStream.Length,
                     MimeType = mimeType,

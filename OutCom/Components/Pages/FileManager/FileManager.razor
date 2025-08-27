@@ -369,7 +369,7 @@
     <div class="modal fade show" style="display:block" role="dialog">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header bg-primary text-white" style="background:var(--fm-primary-light) !important">
                     <h5 class="modal-title">
                         <i class="fe fe-upload"></i> Configurar Archivos para Subir
                     </h5>
@@ -815,15 +815,10 @@
             var files = await fileManagerService.GetUserFilesAsync(userId, currentPath);
             currentItems = files.Select(f => new FileSystemItem
             {
-                Id = f.Id,
-                Name = f.Name,
-                Path = f.Path,
-                IsDirectory = f.Type == FileItemType.Folder,
-                Size = f.Size,
-                Extension = Path.GetExtension(f.Name) ?? "",
-                ModifiedDate = f.ModifiedAt,
-                ClientId = f.ClientId,
-                ClientName = GetClientNameById(f.ClientId) // Obtener nombre del cliente por ID
+                Id = f.Id, Name = f.Name,Path = f.Path,
+                IsDirectory = f.Type == FileItemType.Folder, Size = f.Size,
+                Extension = Path.GetExtension(f.Name) ?? "", Title = f.Title, ExpirationDate = f.ExpirationDate,
+                ModifiedDate = f.ModifiedAt, ClientId = f.ClientId, ClientName = GetClientNameById(f.ClientId) 
             }).ToList();
 
             selectedItems.Clear();
@@ -909,6 +904,10 @@
         pendingFiles.Clear();
         pendingFileConfigs.Clear();
 
+        // Obtener el nombre de la carpeta actual para generar títulos automáticos
+        var folderName = GetFolderName(currentPath);
+        var fileCounter = 1;
+
         foreach (var file in files)
         {
             // Validaciones básicas
@@ -919,13 +918,21 @@
             }
 
             pendingFiles.Add(file);
+
+            // Generar título automático: [nombre_carpeta]_[número_secuencial]
+            var autoTitle = string.IsNullOrEmpty(folderName)
+                ? $"Archivo_{fileCounter}"
+                : $"{folderName}_{fileCounter}";
+
             pendingFileConfigs.Add(new FileUploadConfig
             {
                 FileName = file.Name,
                 FileSize = file.Size,
-                Title = Path.GetFileNameWithoutExtension(file.Name), // Título por defecto
+                Title = autoTitle, // Título automático basado en carpeta
                 File = file
             });
+
+            fileCounter++;
         }
 
         if (pendingFileConfigs.Any())
@@ -1152,7 +1159,7 @@
         builder.OpenElement(sequence++, "div");
         builder.AddAttribute(sequence++, "class", "file-grid-minimal");
 
-        foreach (var item in currentItems)
+        foreach (var item in currentItems.Where(x=> !x.IsDirectory).ToList())
         {
             var isSelected = selectedItems.Contains(item);
 
@@ -1691,27 +1698,11 @@
                 throw new Exception($"File {config.FileName} is too large. Maximum size: 10MB");
             }
 
-            // Create file item with metadata
-            var fileItem = new FileItem
-            {
-                Name = config.FileName,
-                Title = config.Title,
-                ExpirationDate = config.ExpirationDate,
-                Size = config.FileSize,
-                ModifiedAt = DateTime.Now,
-                Path = Path.Combine(currentPath, config.FileName)
-            };
-
             // Open stream and upload file with metadata
             using var stream = config.File.OpenReadStream(maxAllowedSize: maxFileSize);
             var result = await fileManagerService.SaveFileWithContentAsync(
-                config.FileName,
-                currentPath,
-                stream,
-                config.File.ContentType,
-                userId,
-                WebHostEnvironment.WebRootPath,
-                selectedClientId
+                config.FileName, currentPath, stream, config.File.ContentType,userId,
+                WebHostEnvironment.WebRootPath, selectedClientId, config.Title, config.ExpirationDate
             );
 
             if (result == null)
