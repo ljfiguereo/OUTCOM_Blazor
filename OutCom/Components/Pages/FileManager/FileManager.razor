@@ -67,22 +67,24 @@
             <!-- Grupo de acciones primarias -->
             <div class="fm-action-section">
                 <div class="fm-primary-actions">
-                    <button class="fm-action-btn fm-btn-create" @onclick="ShowCreateFolderModal" 
-                            title="@(isAdmin ? "Nueva carpeta" : "Solo los administradores pueden crear carpetas")"
-                            disabled="@(!isAdmin)">
-                        <i class="fe fe-folder-plus"></i>
-                        <span class="fm-btn-text">Nueva carpeta</span>
-                    </button>
+                    @if (isAdmin)
+                    {
+                        <button class="fm-action-btn fm-btn-create" @onclick="ShowCreateFolderModal"
+                                title="@(isAdmin ? "Nueva carpeta" : "Solo los administradores pueden crear carpetas")"
+                                disabled="@(!isAdmin)">
+                            <i class="fe fe-folder-plus"></i>
+                            <span class="fm-btn-text">Nueva carpeta</span>
+                        </button>
 
-                    <button class="fm-action-btn fm-btn-upload mb-0" 
-                            title="@(GetUploadButtonTitle())" 
-                            disabled="@(!isAdmin || IsInRootDirectory)">
-                        <i class="fe fe-upload"></i>
-                        <span class="fm-btn-text">Subir</span>
-                        <InputFile OnChange="HandleMultipleFilesSelected" multiple class="fm-file-input" disabled="@(!isAdmin || IsInRootDirectory)" />
-                    </button>
-
-                    <button class="fm-action-btn fm-btn-print" @onclick="GeneratePDF" 
+                        <button class="fm-action-btn fm-btn-upload mb-0"
+                                title="@(GetUploadButtonTitle())"
+                                disabled="@(!isAdmin || IsInRootDirectory)">
+                            <i class="fe fe-upload"></i>
+                            <span class="fm-btn-text">Subir</span>
+                            <InputFile OnChange="HandleMultipleFilesSelected" multiple class="fm-file-input" disabled="@(!isAdmin || IsInRootDirectory)" />
+                        </button>
+                    }
+                    <button class="fm-action-btn fm-btn-print" @onclick="GeneratePDF"
                             title="@(GetPrintButtonTitle())"
                             disabled="@(isGeneratingPDF || !HasImageFiles())">
                         <i class="fe fe-printer"></i>
@@ -92,17 +94,27 @@
 
                 <!-- Acciones contextuales (aparecen cuando hay selección) -->
                 <div class="fm-contextual-actions @(HasSelectedItems ? "visible" : "hidden")">
-                    <button class="fm-action-btn fm-btn-edit" @onclick="ShowMassEditModal"
-                            disabled="@(!HasSelectedFiles)" title="Editar fechas">
-                        <i class="fe fe-calendar"></i>
-                        <span class="fm-btn-text">Editar fechas</span>
-                    </button>
+                    @if (isAdmin)
+                    {
+                        <button class="fm-action-btn fm-btn-edit" @onclick="ShowMassEditModal"
+                                disabled="@(!HasSelectedFiles)" title="Editar fechas">
+                            <i class="fe fe-calendar"></i>
+                            <span class="fm-btn-text">Editar fechas</span>
+                        </button>
 
-                    <button class="fm-action-btn fm-btn-delete" @onclick="DeleteSelectedItems"
-                            disabled="@(!HasSelectedItems)" title="Eliminar elementos">
-                        <i class="fe fe-trash-2"></i>
-                        <span class="fm-btn-text">Eliminar</span>
-                    </button>
+                        <button class="fm-action-btn fm-btn-delete" @onclick="DeleteSelectedItems"
+                                disabled="@(!HasSelectedItems)" title="Eliminar elementos">
+                            <i class="fe fe-trash-2"></i>
+                            <span class="fm-btn-text">Eliminar</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning mt-2">
+                            <i class="fe fe-info"></i>
+                            <small>Solo puedes visualizar y generar reportes de tus archivos asignados.</small>
+                        </div>
+                    }
                 </div>
             </div>
 
@@ -394,9 +406,12 @@
                             </small>
                         </div>
                         <div class="d-flex gap-2">
-                            <button class="btn btn-outline-secondary" @onclick="() => ShowEditFileModal(selectedImageForPreview)">
-                                <i class="fe fe-edit"></i> Editar
-                            </button>
+                            @if (isAdmin)
+                            {
+                                <button class="btn btn-outline-secondary" @onclick="() => ShowEditFileModal(selectedImageForPreview)">
+                                    <i class="fe fe-edit"></i> Editar
+                                </button>
+                            }
                             <button class="btn btn-outline-primary" @onclick="() => DownloadFile(selectedImageForPreview)">
                                 <i class="fe fe-download"></i> Descargar
                             </button>
@@ -922,13 +937,46 @@
         try
         {
             var files = await fileManagerService.GetUserFilesAsync(userId, currentPath);
-            currentItems = files.Select(f => new FileSystemItem
+            var allItems = files.Select(f => new FileSystemItem
             {
                 Id = f.Id, Name = f.Name,Path = f.Path,
                 IsDirectory = f.Type == FileItemType.Folder, Size = f.Size,
                 Extension = Path.GetExtension(f.Name) ?? "", Title = f.Title, ExpirationDate = f.ExpirationDate,
                 ModifiedDate = f.ModifiedAt, ClientId = f.ClientId, ClientName = GetClientNameById(f.ClientId) 
             }).ToList();
+
+            // Filtrar contenido según el rol del usuario
+            if (isAdmin)
+            {
+                // Los administradores ven todo el contenido
+                currentItems = allItems;
+            }
+            else
+            {
+                // Los clientes solo ven carpetas/archivos asignados a ellos
+                var user = await UserManager.FindByIdAsync(userId);
+                if (user != null)
+                {
+                    var userClientId = userId; // Use the user's ID as the client identifier
+                    if (!string.IsNullOrEmpty(userClientId))
+                    {
+                        currentItems = allItems.Where(item => 
+                            item.ClientId == userClientId || 
+                            string.IsNullOrEmpty(item.ClientId) // Allow items without assigned client in navigation
+                        ).ToList();
+                    }
+                    else
+                    {
+                        // Si el usuario Cliente no tiene ClientId asignado, no ve nada
+                        currentItems = new List<FileSystemItem>();
+                        statusMessage = "No tienes carpetas asignadas. Contacta al administrador.";
+                    }
+                }
+                else
+                {
+                    currentItems = new List<FileSystemItem>();
+                }
+            }
 
             selectedItems.Clear();
             await UpdateSelectedClientId();
@@ -1096,6 +1144,13 @@
 
     private async Task CreateFolder()
     {
+        // Validación de seguridad: Solo administradores pueden crear carpetas
+        if (!isAdmin)
+        {
+            statusMessage = "Error: Solo los administradores pueden crear carpetas.";
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(newFolderName) || string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(selectedClientIdForNewFolder))
             return;
 
@@ -1123,6 +1178,13 @@
 
     private async Task DeleteSelectedItems()
     {
+        // Validación de seguridad: Solo administradores pueden eliminar elementos
+        if (!isAdmin)
+        {
+            statusMessage = "Error: Solo los administradores pueden eliminar elementos.";
+            return;
+        }
+
         if (!HasSelectedItems || string.IsNullOrEmpty(userId)) return;
 
         try
@@ -1400,7 +1462,7 @@
             builder.CloseElement(); // file-info-minimal
 
             // Botón de edición (solo visible en hover)
-            if (!item.IsDirectory)
+            if (!item.IsDirectory && isAdmin)
             {
                 builder.OpenElement(sequence++, "button");
                 builder.AddAttribute(sequence++, "class", "file-edit-btn-minimal");
@@ -1906,6 +1968,13 @@
     // Métodos para edición masiva de fechas de expiración
     private void ShowMassEditModal()
     {
+        // Validación de seguridad: Solo administradores pueden editar archivos
+        if (!isAdmin)
+        {
+            statusMessage = "Error: Solo los administradores pueden editar archivos.";
+            return;
+        }
+
         if (!HasSelectedFiles) return;
 
         massEditExpirationDate = null;
@@ -1924,6 +1993,13 @@
 
     private async Task ApplyMassExpirationEdit()
     {
+        // Validación de seguridad: Solo administradores pueden editar archivos
+        if (!isAdmin)
+        {
+            statusMessage = "Error: Solo los administradores pueden editar archivos.";
+            return;
+        }
+
         if (!HasSelectedFiles) return;
 
         try
@@ -2027,6 +2103,13 @@
 
     private async Task UploadSingleFile(IBrowserFile file)
     {
+        // Validación de seguridad: Solo administradores pueden subir archivos
+        if (!isAdmin)
+        {
+            statusMessage = "Error: Solo los administradores pueden subir archivos.";
+            return;
+        }
+
         if (string.IsNullOrEmpty(userId)) return;
 
         try
