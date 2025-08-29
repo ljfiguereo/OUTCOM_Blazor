@@ -25,6 +25,7 @@ namespace OutCom.Services
         Task<bool> UpdateFilePropertiesAsync(int fileItemId, string title, DateTime? expirationDate, string userId);
         Task<bool> UpdateMultipleFilePropertiesAsync(List<int> fileItemIds, DateTime? expirationDate, bool removeExistingDates, string userId);
         Task<FileItem?> SaveFileWithPropertiesAsync(string fileName, string title, DateTime? expirationDate, string path, Stream fileStream, string mimeType, string ownerId, string webRootPath, string? clientId = null);
+        Task<List<FileItem>> GetDirectoryContentsAsync(string folderPath, string? userId = null);
     }
 
     public class FileManagerService : IFileManagerService
@@ -517,5 +518,43 @@ namespace OutCom.Services
                 return null;
             }
         }
+
+        public async Task<List<FileItem>> GetDirectoryContentsAsync(string folderPath, string? userId = null)
+        {
+            try
+            {
+                // Obtener todos los elementos que están dentro de la carpeta especificada
+                var query = _context.FileItems
+                    .Include(f => f.Owner)
+                    .Where(f => !f.IsDeleted && f.Path.StartsWith(folderPath + "/"));
+
+                // Si se proporciona userId, aplicar filtros de permisos
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                    if (user?.UserType != UserType.Admin)
+                    {
+                        query = query.Where(f => f.ClientId == userId || f.OwnerId == userId);
+                    }
+                }
+
+                return await query.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener contenido del directorio {folderPath}: {ex.Message}");
+                return new List<FileItem>();
+            }
+        }
+
+        private string GetClientNameById(string? clientId)
+        {
+            if (string.IsNullOrEmpty(clientId))
+                return "Sin asignar";
+
+            var client = _context.Users.FirstOrDefault(u => u.Id == clientId && u.UserType == UserType.Client);
+            return client != null ? $"{client.FirstName} {client.LastName}" : "Cliente no encontrado";
+        }
     }
+
 }

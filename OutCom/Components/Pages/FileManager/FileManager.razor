@@ -1,4 +1,4 @@
-﻿@page "/file-manager"
+@page "/file-manager"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
@@ -102,7 +102,7 @@
                             <span class="fm-btn-text">Editar fechas</span>
                         </button>
 
-                        <button class="fm-action-btn fm-btn-delete" @onclick="DeleteSelectedItems"
+                        <button class="fm-action-btn fm-btn-delete" @onclick="ShowDeleteConfirmModal"
                                 disabled="@(!HasSelectedItems)" title="Eliminar elementos">
                             <i class="fe fe-trash-2"></i>
                             <span class="fm-btn-text">Eliminar</span>
@@ -754,6 +754,155 @@
     <div class="modal-backdrop fade show"></div>
 }
 
+<!-- Modal de confirmación para eliminar elementos -->
+@if (showDeleteConfirmModal)
+{
+    <div class="modal fade show" style="display:block" role="dialog">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-red-lighter text-white">
+                    <h5 class="modal-title">
+                        <i class="fe fe-alert-triangle"></i> Confirmar Eliminación
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => CloseDeleteConfirmModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fe fe-exclamation-triangle me-2"></i>
+                        <strong>¿Está seguro de que desea eliminar los siguientes elementos?</strong>
+                        <p class="mb-0 mt-2">Esta acción eliminará permanentemente los archivos del servidor y no se puede deshacer.</p>
+                    </div>
+
+                    <!-- Lista de elementos a eliminar -->
+                    <div class="delete-items-list">
+                        <h6 class="mb-3">
+                            <i class="fe fe-list"></i> Elementos seleccionados (@itemsToDelete.Count):
+                        </h6>
+                        
+                        <div class="list-group mb-3" style="max-height: 300px; overflow-y: auto;">
+                            @foreach (var item in itemsToDelete)
+                            {
+                                <div class="list-group-item d-flex align-items-center">
+                                    <i class="@GetFileIcon(item) me-2 @(item.IsDirectory ? "text-warning" : "text-primary")"></i>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold">@item.Name</div>
+                                        <small class="text-muted">
+                                            @if (item.IsDirectory)
+                                            {
+                                                <span>Carpeta</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Archivo - @FormatFileSize(item.Size)</span>
+                                            }
+                                            | Modificado: @item.ModifiedDate.ToString("dd/MM/yyyy HH:mm")
+                                        </small>
+                                    </div>
+                                    @if (item.IsDirectory)
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fe fe-folder"></i> Carpeta
+                                        </span>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Mostrar contenido de carpetas si las hay -->
+                        @if (itemsToDelete.Any(x => x.IsDirectory))
+                        {
+                            <div class="folder-contents-section">
+                                <h6 class="text-warning">
+                                    <i class="fe fe-folder-open"></i> Contenido de carpetas que se eliminará:
+                                </h6>
+                                
+                                @if (isLoadingFolderContents)
+                                {
+                                    <div class="text-center p-3">
+                                        <div class="spinner-border spinner-border-sm me-2"></div>
+                                        <span>Cargando contenido de carpetas...</span>
+                                    </div>
+                                }
+                                else if (folderContents.Any())
+                                {
+                                    <div class="alert alert-info">
+                                        <small>
+                                            <i class="fe fe-info"></i>
+                                            Se eliminarán <strong>@folderContents.Count</strong> elementos adicionales dentro de las carpetas seleccionadas.
+                                        </small>
+                                    </div>
+                                    
+                                    <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                        @foreach (var content in folderContents.Take(10))
+                                        {
+                                            <div class="list-group-item list-group-item-light d-flex align-items-center">
+                                                <i class="@GetFileIcon(content) me-2 text-muted"></i>
+                                                <div class="flex-grow-1">
+                                                    <small class="text-muted">@content.Path</small>
+                                                    @if (!content.IsDirectory)
+                                                    {
+                                                        <small class="text-muted"> - @FormatFileSize(content.Size)</small>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                        @if (folderContents.Count > 10)
+                                        {
+                                            <div class="list-group-item list-group-item-light text-center">
+                                                <small class="text-muted">... y @(folderContents.Count - 10) elementos más</small>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-info">
+                                        <small>
+                                            <i class="fe fe-info"></i>
+                                            Las carpetas seleccionadas están vacías.
+                                        </small>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Resumen de eliminación -->
+                        <div class="deletion-summary mt-3 p-3 bg-danger-transparent bg-opacity-10 border border-danger">
+                            <h6 class="text-danger">
+                                <i class="fe fe-trash-2"></i> Resumen de eliminación:
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <small class="text-muted">Archivos:</small><br>
+                                    <strong>@(itemsToDelete.Count(x => !x.IsDirectory) + folderContents.Count(x => !x.IsDirectory))</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">Carpetas:</small><br>
+                                    <strong>@(itemsToDelete.Count(x => x.IsDirectory) + folderContents.Count(x => x.IsDirectory))</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">Tamaño total:</small><br>
+                                    <strong>@FormatFileSize(itemsToDelete.Where(x => !x.IsDirectory).Sum(x => x.Size) + folderContents.Where(x => !x.IsDirectory).Sum(x => x.Size))</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => CloseDeleteConfirmModal()">
+                        <i class="fe fe-x"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-danger" @onclick="() => ConfirmDeleteItems()" 
+                            disabled="@isLoadingFolderContents">
+                        <i class="fe fe-trash-2"></i> Eliminar Permanentemente
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
     // Variables de estado principales
     private string? userId;
@@ -781,6 +930,7 @@
     private bool showFileUploadConfigModal = false;
     private bool showEditFileModal = false;
     private bool showMassEditModal = false;
+    private bool showDeleteConfirmModal = false;
     private string newFolderName = "";
     private string generatedShareLink = "";
     private FileSystemItem? selectedImageForPreview = null;
@@ -790,6 +940,11 @@
     private DateTime? editFileExpirationDate = null;
     private DateTime? massEditExpirationDate = null;
     private bool removeExistingDates = false;
+    
+    // Variables para modal de confirmación de eliminación
+    private List<FileSystemItem> itemsToDelete = new();
+    private List<FileSystemItem> folderContents = new();
+    private bool isLoadingFolderContents = false;
 
     // Variables para generación de PDF
     private bool isGeneratingPDF = false;
@@ -1176,7 +1331,7 @@
         }
     }
 
-    private async Task DeleteSelectedItems()
+    private async Task ShowDeleteConfirmModal()
     {
         // Validación de seguridad: Solo administradores pueden eliminar elementos
         if (!isAdmin)
@@ -1185,28 +1340,189 @@
             return;
         }
 
-        if (!HasSelectedItems || string.IsNullOrEmpty(userId)) return;
+        if (!HasSelectedItems) return;
+
+        // Copiar elementos seleccionados para mostrar en el modal
+        itemsToDelete = new List<FileSystemItem>(selectedItems);
+        folderContents.Clear();
+        isLoadingFolderContents = false;
+
+        // Si hay carpetas seleccionadas, cargar su contenido
+        var foldersToAnalyze = itemsToDelete.Where(x => x.IsDirectory).ToList();
+        if (foldersToAnalyze.Any())
+        {
+            isLoadingFolderContents = true;
+            showDeleteConfirmModal = true;
+            StateHasChanged();
+
+            try
+            {
+                await LoadFolderContentsForDeletion(foldersToAnalyze);
+            }
+            catch (Exception ex)
+            {
+                statusMessage = $"Error al cargar contenido de carpetas: {ex.Message}";
+            }
+            finally
+            {
+                isLoadingFolderContents = false;
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            showDeleteConfirmModal = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadFolderContentsForDeletion(List<FileSystemItem> folders)
+    {
+        folderContents.Clear();
+
+        foreach (var folder in folders)
+        {
+            try
+            {
+                // Cargar contenido recursivo de la carpeta
+                var contents = await GetFolderContentsRecursive(folder.Path);
+                folderContents.AddRange(contents);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al cargar contenido de la carpeta {folder.Name}: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task<List<FileSystemItem>> GetFolderContentsRecursive(string folderPath)
+    {
+        var contents = new List<FileSystemItem>();
+        
+        try
+        {
+            // Obtener contenido directo de la carpeta
+            var directContents = await fileManagerService.GetDirectoryContentsAsync(folderPath, userId);
+            
+            foreach (var item in directContents)
+            {
+                var fileSystemItem = new FileSystemItem
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    Path = item.Path,
+                    IsDirectory = item.Type == FileItemType.Folder,
+                    Size = item.Size,
+                    Extension = item.Type == FileItemType.File ? Path.GetExtension(item.Name) : "",
+                    ModifiedDate = item.ModifiedAt,
+                    Title = item.Title,
+                    ExpirationDate = item.ExpirationDate,
+                    ClientId = item.ClientId,
+                    ClientName = GetClientNameById(item.ClientId)
+                };
+                
+                contents.Add(fileSystemItem);
+                
+                // Si es una carpeta, obtener su contenido recursivamente
+                if (fileSystemItem.IsDirectory)
+                {
+                    var subContents = await GetFolderContentsRecursive(fileSystemItem.Path);
+                    contents.AddRange(subContents);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al obtener contenido de {folderPath}: {ex.Message}");
+        }
+
+        return contents;
+    }
+
+    private void CloseDeleteConfirmModal()
+    {
+        showDeleteConfirmModal = false;
+        itemsToDelete.Clear();
+        folderContents.Clear();
+        isLoadingFolderContents = false;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmDeleteItems()
+    {
+        if (!isAdmin || !itemsToDelete.Any() || string.IsNullOrEmpty(userId))
+        {
+            CloseDeleteConfirmModal();
+            return;
+        }
 
         try
         {
-            foreach (var item in selectedItems)
+            // Eliminar elementos del servicio (base de datos)
+            foreach (var item in itemsToDelete)
             {
-                // Convertir FileSystemItem.Id a int para la llamada al servicio
                 if (item.Id.HasValue)
                 {
                     await fileManagerService.DeleteFileItemAsync(item.Id.Value, userId);
                 }
             }
 
+            // Eliminar archivos físicos del servidor
+            await DeletePhysicalFiles(itemsToDelete);
+
             await LoadCurrentDirectory();
             await LoadDirectoryStructure();
-            statusMessage = $"Se eliminaron {selectedItems.Count} elemento(s) exitosamente.";
+            statusMessage = $"Se eliminaron {itemsToDelete.Count} elemento(s) exitosamente del servidor.";
             selectedItems.Clear();
+            CloseDeleteConfirmModal();
         }
         catch (Exception ex)
         {
             statusMessage = $"Error al eliminar elementos: {ex.Message}";
+            CloseDeleteConfirmModal();
         }
+    }
+
+    private async Task DeletePhysicalFiles(List<FileSystemItem> items)
+    {
+        foreach (var item in items)
+        {
+            try
+            {
+                // Usar UserFiles en lugar de uploads para mantener consistencia
+                var physicalPath = Path.Combine(WebHostEnvironment.WebRootPath, "UserFiles", item.Path.TrimStart('/'));
+                
+                if (item.IsDirectory)
+                {
+                    // Eliminar carpeta y todo su contenido
+                    if (Directory.Exists(physicalPath))
+                    {
+                        Directory.Delete(physicalPath, recursive: true);
+                        Console.WriteLine($"Carpeta eliminada físicamente: {physicalPath}");
+                    }
+                }
+                else
+                {
+                    // Eliminar archivo individual
+                    if (File.Exists(physicalPath))
+                    {
+                        File.Delete(physicalPath);
+                        Console.WriteLine($"Archivo eliminado físicamente: {physicalPath}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al eliminar físicamente {item.Name}: {ex.Message}");
+                // Continuar con los demás elementos aunque uno falle
+            }
+        }
+    }
+
+    private async Task DeleteSelectedItems()
+    {
+        // Este método se mantiene para compatibilidad, pero ahora redirige al modal de confirmación
+        await ShowDeleteConfirmModal();
     }
 
     private void ShareSelectedItems()
