@@ -18,6 +18,52 @@ namespace OutCom.Data
         {
             base.OnModelCreating(builder);
 
+            // Configuraciones específicas para SQLite
+            if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+            {
+                // Configurar tipos de datos para Identity con SQLite
+                builder.Entity<ApplicationUser>(entity =>
+                {
+                    entity.Property(e => e.ConcurrencyStamp).HasColumnType("TEXT");
+                    entity.Property(e => e.SecurityStamp).HasColumnType("TEXT");
+                    entity.Property(e => e.NormalizedUserName).HasMaxLength(256);
+                    entity.Property(e => e.NormalizedEmail).HasMaxLength(256);
+                });
+
+                builder.Entity<Microsoft.AspNetCore.Identity.IdentityRole>(entity =>
+                {
+                    entity.Property(e => e.ConcurrencyStamp).HasColumnType("TEXT");
+                    entity.Property(e => e.Name).HasMaxLength(256);
+                    entity.Property(e => e.NormalizedName).HasMaxLength(256);
+                });
+
+                builder.Entity<Microsoft.AspNetCore.Identity.IdentityUserClaim<string>>(entity =>
+                {
+                    entity.Property(e => e.ClaimType).HasMaxLength(1024);
+                    entity.Property(e => e.ClaimValue).HasMaxLength(1024);
+                });
+
+                builder.Entity<Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>>(entity =>
+                {
+                    entity.Property(e => e.ClaimType).HasMaxLength(1024);
+                    entity.Property(e => e.ClaimValue).HasMaxLength(1024);
+                });
+
+                builder.Entity<Microsoft.AspNetCore.Identity.IdentityUserToken<string>>(entity =>
+                {
+                    entity.Property(e => e.LoginProvider).HasMaxLength(128);
+                    entity.Property(e => e.Name).HasMaxLength(128);
+                    entity.Property(e => e.Value).HasMaxLength(1024);
+                });
+
+                builder.Entity<Microsoft.AspNetCore.Identity.IdentityUserLogin<string>>(entity =>
+                {
+                    entity.Property(e => e.LoginProvider).HasMaxLength(128);
+                    entity.Property(e => e.ProviderKey).HasMaxLength(128);
+                    entity.Property(e => e.ProviderDisplayName).HasMaxLength(256);
+                });
+            }
+
             // Configuración de UserRoleAssignment
             builder.Entity<UserRoleAssignment>()
                 .HasOne(ura => ura.UserRole)

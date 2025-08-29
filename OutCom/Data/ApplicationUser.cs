@@ -24,6 +24,9 @@ namespace OutCom.Data
         [MaxLength(200)]
         public string? CreatedBy { get; set; }
 
+        [MaxLength(500)]
+        public string Address { get; set; } = string.Empty;
+
         // Propiedades calculadas
         public string FullName => $"{FirstName} {LastName}".Trim();
 

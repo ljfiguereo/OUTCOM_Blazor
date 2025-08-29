@@ -86,17 +86,20 @@
                                                     <button type="button" class="btn btn-sm btn-outline-warning" @onclick="() => ShowChangePasswordModal(user)" title="Cambiar contraseña">
                                                         <i class="fa fa-key"></i>
                                                     </button>
-                                                    @if (user.IsActive)
+                                                    @if (user.UserName != "admin@outcom.com")
                                                     {
-                                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateUser(user.Id)" title="Desactivar usuario">
-                                                            <i class="fa fa-ban"></i>
-                                                        </button>
-                                                    }
-                                                    else
-                                                    {
-                                                        <button type="button" class="btn btn-sm btn-outline-success" @onclick="() => ActivateUser(user.Id)" title="Activar usuario">
-                                                            <i class="fa fa-check"></i>
-                                                        </button>
+                                                        if (user.IsActive)
+                                                        {
+                                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateUser(user.Id)" title="Desactivar usuario">
+                                                                <i class="fa fa-ban"></i>
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button type="button" class="btn btn-sm btn-outline-success" @onclick="() => ActivateUser(user.Id)" title="Activar usuario">
+                                                                <i class="fa fa-check"></i>
+                                                            </button>
+                                                        }
                                                     }
                                                 </div>
                                             </td>
@@ -180,7 +183,8 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Email</label>
-                        <InputText class="form-control" @bind-Value="editUserModel.Email" />
+                        <InputText class="form-control" @bind-Value="editUserModel.Email" 
+                                   disabled="@(editUserModel.Email == "admin@outcom.com")" />
                         <ValidationMessage For="() => editUserModel.Email" />
                     </div>
                     <div class="mb-3">
@@ -195,7 +199,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Tipo de Usuario</label>
-                        <InputSelect class="form-select" @bind-Value="editUserModel.UserType">
+                        <InputSelect class="form-select" @bind-Value="editUserModel.UserType"
+                                     disabled="@(editUserModel.Email == "admin@outcom.com")">
                             <option value="@UserType.Client">Cliente</option>
                             <option value="@UserType.Admin">Administrador</option>
                         </InputSelect>

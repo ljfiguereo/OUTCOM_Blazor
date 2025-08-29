@@ -957,7 +957,7 @@
                 var user = await UserManager.FindByIdAsync(userId);
                 if (user != null)
                 {
-                    var userClientId = userId; // Use the user's ID as the client identifier
+                    var userClientId = user.Id; // Use the user's ID as the client identifier
                     if (!string.IsNullOrEmpty(userClientId))
                     {
                         currentItems = allItems.Where(item => 

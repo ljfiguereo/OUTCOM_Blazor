@@ -1,0 +1,1 @@
+Al eliminar una carpeta el sistema debe mostrar un modal con un mensaje mostrando los items de la carpeta y preguntar si estoy seguro de eliminarlo, si el usuario esta de acuerdo debe eliminarlo tambien del equipo para que el server no se llene de archivos no usados
