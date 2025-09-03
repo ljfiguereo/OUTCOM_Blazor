@@ -101,3 +101,14 @@ main {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+/* Estilos para clientes sin menú lateral */
+.client-full-width {
+    margin-left: 0 !important;
+    width: 100% !important;
+}
+
+.client-full-width .side-app {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+}

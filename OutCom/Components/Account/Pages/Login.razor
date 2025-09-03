@@ -9,6 +9,7 @@
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject UserManager<ApplicationUser> UserManager
 
 <PageTitle>Iniciar Sesión - OutCom</PageTitle>
 
@@ -43,12 +44,6 @@
     
     <div class="auth-links">
         <a href="Account/ForgotPassword">¿Olvidaste tu contraseña?</a>
-        <span class="separator">|</span>
-        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Crear cuenta nueva</a>
-    </div>
-    
-    <div class="auth-links" style="margin-top: 15px;">
-        <a href="Account/ResendEmailConfirmation">Reenviar confirmación de email</a>
     </div>
 </EditForm>
 
@@ -81,7 +76,19 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("Usuario registrado.");
-            RedirectManager.RedirectTo(ReturnUrl);
+            
+            // Obtener el usuario y verificar su rol
+            var user = await UserManager.FindByEmailAsync(Input.Email);
+            if (user != null && user.UserType == UserType.Client)
+            {
+                // Redirigir clientes directamente a file-manager
+                RedirectManager.RedirectTo("/file-manager");
+            }
+            else
+            {
+                // Redirigir otros usuarios según ReturnUrl
+                RedirectManager.RedirectTo(ReturnUrl);
+            }
         }
         else if (result.RequiresTwoFactor)
         {

@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
 @inherits LayoutComponentBase
@@ -15,10 +15,13 @@
         <!-- app-Header -->
         <NavHeader />
 
-        <NavMenu />
+        @if (!isClient || isAdmin)
+        {
+            <NavMenu />
+        }
         <div class="jumps-prevent" style="padding-top: 74px;"></div>
         <!--app-content open-->
-        <div class="main-content app-content mt-5">
+        <div class="main-content app-content mt-5 @(isClient && !isAdmin ? "client-full-width" : "")">
             <div class="side-app">
 
                 <!-- CONTAINER -->
@@ -56,6 +59,7 @@
 @code {
     private AuthenticationState? authenticationState;
     private bool isAdmin = false;
+    private bool isClient = false;
     private bool isAuthenticated = false;
 
     protected override async Task OnInitializedAsync()
@@ -66,6 +70,7 @@
         if (isAuthenticated)
         {
             isAdmin = authenticationState.User.IsInRole("Admin");
+            isClient = authenticationState.User.IsInRole("Client");
         }
     }
 }

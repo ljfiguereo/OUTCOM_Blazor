@@ -168,9 +168,52 @@
 
                 @if (!string.IsNullOrEmpty(statusMessage))
                 {
-                    <div class="alert alert-info alert-dismissible">
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
                         @statusMessage
                         <button type="button" class="btn-close" @onclick="() => statusMessage = null"></button>
+                    </div>
+                }
+
+                @if (isClient && !isAdmin)
+                {
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fe fe-bar-chart-2"></i> Resumen de tus archivos
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="h3 text-primary mb-1">@GetClientTotalFiles()</div>
+                                                <div class="text-muted">Archivos totales</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="h3 text-info mb-1">@GetClientTotalFolders()</div>
+                                                <div class="text-muted">Carpetas</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="h3 text-success mb-1">@FormatFileSize(GetClientTotalSize())</div>
+                                                <div class="text-muted">Tamaño total</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="h3 text-warning mb-1">@GetClientExpiringFiles()</div>
+                                                <div class="text-muted">Por vencer (30 días)</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 }
 
@@ -913,6 +956,7 @@
     private bool isDragOver = false;
     private string? statusMessage;
     private bool isAdmin = false;
+    private bool isClient = false;
 
     // Variables para manejo de clientes
     private List<ApplicationUser> availableClients = new();
@@ -1054,22 +1098,62 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (!string.IsNullOrEmpty(userId))
+        try
         {
-            // Verificar si el usuario es Admin
-            var user = await UserManager.FindByIdAsync(userId);
-            if (user != null)
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
             {
-                isAdmin = await UserManager.IsInRoleAsync(user, "Admin");
+                userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+                isAdmin = authState.User.IsInRole("Admin");
+                isClient = authState.User.IsInRole("Client");
+                
+                await LoadAvailableClients();
+                await LoadCurrentDirectory();
+                await LoadDirectoryStructure();
+                
+                // Si es cliente, seleccionar automáticamente su primera carpeta
+                if (isClient && !isAdmin)
+                {
+                    await SelectFirstClientFolder();
+                }
             }
-
-            await LoadAvailableClients();
-            await LoadCurrentDirectory();
-            await LoadDirectoryStructure();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error al inicializar: {ex.Message}";
             await UpdateSelectedClientId();
+        }
+    }
+
+    private async Task SelectFirstClientFolder()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(userId)) return;
+
+            // Obtener todas las carpetas asignadas al cliente
+            var allFiles = await fileManagerService.GetUserFilesAsync(userId);
+            var clientFolders = allFiles.Where(f => 
+                f.Type == FileItemType.Folder && 
+                f.ClientId == userId && 
+                string.IsNullOrEmpty(GetParentPath(f.Path)) // Solo carpetas raíz
+            ).OrderBy(f => f.Name).ToList();
+
+            if (clientFolders.Any())
+            {
+                // Seleccionar la primera carpeta asignada
+                var firstFolder = clientFolders.First();
+                await NavigateToFolder(firstFolder.Path);
+                statusMessage = $"Navegando automáticamente a tu carpeta: {firstFolder.Name}";
+            }
+            else
+            {
+                statusMessage = "No tienes carpetas asignadas. Contacta al administrador.";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error al seleccionar carpeta del cliente: {ex.Message}";
         }
     }
 
@@ -1437,6 +1521,40 @@
         }
 
         return contents;
+    }
+
+    // Métodos para estadísticas de cliente
+    private int GetClientTotalFiles()
+    {
+        if (!isClient || isAdmin || string.IsNullOrEmpty(userId)) return 0;
+        
+        return currentItems.Count(item => !item.IsDirectory && item.ClientId == userId);
+    }
+
+    private int GetClientTotalFolders()
+    {
+        if (!isClient || isAdmin || string.IsNullOrEmpty(userId)) return 0;
+        
+        return currentItems.Count(item => item.IsDirectory && item.ClientId == userId);
+    }
+
+    private long GetClientTotalSize()
+    {
+        if (!isClient || isAdmin || string.IsNullOrEmpty(userId)) return 0;
+        
+        return currentItems.Where(item => !item.IsDirectory && item.ClientId == userId).Sum(item => item.Size);
+    }
+
+    private int GetClientExpiringFiles()
+    {
+        if (!isClient || isAdmin || string.IsNullOrEmpty(userId)) return 0;
+        
+        var thirtyDaysFromNow = DateTime.Now.AddDays(30);
+        return currentItems.Count(item => 
+            !item.IsDirectory && 
+            item.ClientId == userId && 
+            item.ExpirationDate.HasValue && 
+            item.ExpirationDate.Value <= thirtyDaysFromNow);
     }
 
     private void CloseDeleteConfirmModal()
