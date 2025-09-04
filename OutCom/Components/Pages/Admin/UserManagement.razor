@@ -344,7 +344,10 @@
     private async Task ShowChangePasswordModal(ApplicationUser user)
     {
         selectedUser = user;
-        changePasswordModel = new ChangePasswordModel();
+        changePasswordModel = new ChangePasswordModel
+        {
+            UserId = user.Id
+        };
         statusMessage = string.Empty;
         await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('changePasswordModal')).show()");
     }
@@ -404,12 +407,12 @@
 
     private async Task ChangePassword()
     {
-        if (selectedUser == null) return;
+        if (string.IsNullOrEmpty(changePasswordModel.UserId)) return;
 
         try
         {
             isProcessing = true;
-            var result = await UserManagementService.UpdateUserPasswordAsync(selectedUser.Id, changePasswordModel.NewPassword, currentUserId);
+            var result = await UserManagementService.UpdateUserPasswordAsync(changePasswordModel.UserId, changePasswordModel.NewPassword, currentUserId);
 
             if (result.Succeeded)
             {

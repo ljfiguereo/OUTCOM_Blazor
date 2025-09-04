@@ -2,8 +2,16 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @rendermode InteractiveServer
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@using OutCom.Data
+@using OutCom.Services
+@using System.ComponentModel.DataAnnotations
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject IUserManagementService UserManagementService
 
 <div class="app-header header sticky">
     <div class="container-fluid main-container">
@@ -109,40 +117,26 @@
                                                         <small class="d-block text-muted">Ver y editar información personal</small>
                                                     </div>
                                                 </a>
-                                                <a class="dropdown-item d-flex align-items-center py-2" href="/account/settings">
-                                                    <i class="dropdown-icon fe fe-settings me-3 text-info"></i>
-                                                    <div>
-                                                        <span class="fw-medium">Configuración de Cuenta</span>
-                                                        <small class="d-block text-muted">Preferencias y configuración</small>
-                                                    </div>
-                                                </a>
                                             </div>
 
                                             <div class="dropdown-divider my-2"></div>
 
                                             <!-- Security Section -->
                                             <div class="dropdown-section mb-2">
-                                                <a class="dropdown-item d-flex align-items-center py-2" href="/account/change-password">
+                                                <button class="dropdown-item d-flex align-items-center py-2" @onclick="OpenChangePasswordModal" type="button">
                                                     <i class="dropdown-icon fe fe-lock me-3 text-warning"></i>
                                                     <div>
                                                         <span class="fw-medium">Cambiar Contraseña</span>
                                                         <small class="d-block text-muted">Actualizar credenciales de acceso</small>
                                                     </div>
-                                                </a>
-                                                <a class="dropdown-item d-flex align-items-center py-2" href="/account/devices">
+                                                </button>
+                                                <div class="dropdown-item d-flex align-items-center py-2">
                                                     <i class="dropdown-icon fe fe-smartphone me-3 text-success"></i>
                                                     <div>
                                                         <span class="fw-medium">Dispositivos Activos</span>
                                                         <small class="d-block text-muted">@activeDevicesCount dispositivos conectados</small>
                                                     </div>
-                                                </a>
-                                                <a class="dropdown-item d-flex align-items-center py-2" href="/account/security-log">
-                                                    <i class="dropdown-icon fe fe-activity me-3 text-info"></i>
-                                                    <div>
-                                                        <span class="fw-medium">Historial de Accesos</span>
-                                                        <small class="d-block text-muted">Revisar actividad de la cuenta</small>
-                                                    </div>
-                                                </a>
+                                                </div>
                                             </div>
 
                                             <div class="dropdown-divider my-2"></div>
@@ -186,6 +180,55 @@
     </div>
 </div>
 
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">Cambiar Contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <EditForm Model="changePasswordModel" OnValidSubmit="ChangePassword">
+                <DataAnnotationsValidator />
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(statusMessage))
+                    {
+                        <div class="alert @(isError ? "alert-danger" : "alert-success") alert-dismissible fade show" role="alert">
+                            @statusMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña Actual</label>
+                        <InputText type="password" class="form-control" @bind-Value="currentPassword" />
+                        <ValidationMessage For="() => currentPassword" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nueva Contraseña</label>
+                        <InputText type="password" class="form-control" @bind-Value="changePasswordModel.NewPassword" />
+                        <ValidationMessage For="() => changePasswordModel.NewPassword" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirmar Nueva Contraseña</label>
+                        <InputText type="password" class="form-control" @bind-Value="changePasswordModel.ConfirmPassword" />
+                        <ValidationMessage For="() => changePasswordModel.ConfirmPassword" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseChangePasswordModal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" disabled="@isProcessing">
+                        @if (isProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Cambiar Contraseña
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
 @code {
     private string userEmail = "";
     private bool isUserOnline = true;
@@ -194,6 +237,14 @@
     private string sessionDuration = "";
     private string userIpAddress = "";
     private DateTime sessionStartTime = DateTime.Now;
+
+    // Change Password Modal variables
+    private bool showChangePasswordModal = false;
+    private string currentPassword = string.Empty;
+    private ChangePasswordModel changePasswordModel = new();
+    private bool isProcessing = false;
+    private string statusMessage = string.Empty;
+    private bool isError = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -254,7 +305,7 @@
         {
             ["returnUrl"] = "logout"
         };
-        
+
         // Redirigir al endpoint de logout que manejará el cierre de sesión
         Navigation.NavigateTo("/Account/Logout", forceLoad: true);
     }
@@ -271,5 +322,127 @@
         // Implementar cambio de tema
         // En una aplicación real, esto cambiaría la configuración del tema del usuario
         await Task.CompletedTask;
+    }
+
+    private async Task OpenChangePasswordModal()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        changePasswordModel = new ChangePasswordModel { UserId = userId ?? string.Empty };
+        currentPassword = string.Empty;
+        statusMessage = string.Empty;
+        isError = false;
+        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('changePasswordModal')).show()");
+    }
+
+    private async Task CloseChangePasswordModal()
+    {
+        await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide()");
+    }
+
+    private async Task ChangePassword()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId)) return;
+
+        // Validaciones adicionales
+        if (string.IsNullOrEmpty(currentPassword))
+        {
+            statusMessage = "La contraseña actual es requerida.";
+            isError = true;
+            return;
+        }
+
+        if (string.IsNullOrEmpty(changePasswordModel.NewPassword))
+        {
+            statusMessage = "La nueva contraseña es requerida.";
+            isError = true;
+            return;
+        }
+
+        if (changePasswordModel.NewPassword != changePasswordModel.ConfirmPassword)
+        {
+            statusMessage = "Las contraseñas no coinciden.";
+            isError = true;
+            return;
+        }
+
+        if (changePasswordModel.NewPassword.Length < 6)
+        {
+            statusMessage = "La contraseña debe tener al menos 6 caracteres.";
+            isError = true;
+            return;
+        }
+
+        try
+        {
+            isProcessing = true;
+            statusMessage = string.Empty;
+
+            // Verificar la contraseña actual
+            var user = await UserManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                statusMessage = "Usuario no encontrado.";
+                isError = true;
+                return;
+            }
+
+            var checkPassword = await UserManager.CheckPasswordAsync(user, currentPassword);
+            if (!checkPassword)
+            {
+                statusMessage = "La contraseña actual es incorrecta.";
+                isError = true;
+                return;
+            }
+
+            // Cambiar la contraseña
+            var result = await UserManager.ChangePasswordAsync(user, currentPassword, changePasswordModel.NewPassword);
+
+            if (result.Succeeded)
+            {
+                statusMessage = "Contraseña actualizada exitosamente.";
+                isError = false;
+
+                // Refrescar la sesión
+                //await SignInManager.RefreshSignInAsync(user);
+                StateHasChanged();
+
+                // Cerrar el modal después de un breve delay
+                await Task.Delay(2000);
+                await CloseChangePasswordModal();
+            }
+            else
+            {
+                statusMessage = $"Error al cambiar contraseña: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    public class ChangePasswordModel
+    {
+        [Required(ErrorMessage = "El ID del usuario es requerido.")]
+        public string UserId { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La nueva contraseña es requerida.")]
+        [StringLength(100, ErrorMessage = "La contraseña debe tener al menos {2} caracteres.", MinimumLength = 6)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La confirmación de contraseña es requerida.")]
+        [Compare("NewPassword", ErrorMessage = "Las contraseñas no coinciden.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
     }
 }
