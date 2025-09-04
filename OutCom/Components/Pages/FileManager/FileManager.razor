@@ -2666,7 +2666,7 @@
             
             // Llamar a JavaScript para generar el PDF
             await JSRuntime.InvokeVoidAsync("generateImagesPDF", imageFiles.Select(img => new {
-                name = img.Name,
+                name = img.Title,
                 url = GetImagePreviewUrl(img)
             }).ToArray(), folderName);
         }

@@ -34,19 +34,49 @@ window.generateImagesPDF = async function(images, folderName) {
 
         // Función para agregar encabezado a cada página
         function addHeader() {
-            // Título principal "OUTCOM"
-            pdf.setFontSize(24);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text('OUTCOM', pageWidth / 2, 30, { align: 'center' });
+            // Logo principal OUTCOM
+            try {
+                // Agregar logo centrado
+                const logoWidth = 80; // Ancho del logo en mm
+                const logoHeight = 20; // Alto del logo en mm
+                const logoX = (pageWidth - logoWidth) / 2; // Centrar horizontalmente
+                const logoY = 15; // Posición vertical
+                
+                pdf.addImage('/LogoOutcom.png', 'PNG', logoX, logoY, logoWidth, logoHeight);
+            } catch (error) {
+                console.error('Error al cargar logo:', error);
+                // Fallback al texto si no se puede cargar la imagen
+                pdf.setFontSize(24);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('OUTCOM', pageWidth / 2, 30, { align: 'center' });
+            }
 
-            // Subtítulo "Reporte de [nombre carpeta]"
-            pdf.setFontSize(16);
+            // Subtítulo "Reporte de [nombre carpeta]" con fondo gris
+            const subtitleText = `REPORTE DE INSTALACION AUTOBUSES OMSA`;
+            pdf.setFontSize(20);
             pdf.setFont('helvetica', 'normal');
-            pdf.text(`Reporte de ${folderName}`, pageWidth / 2, 45, { align: 'center' });
+            
+            // Calcular dimensiones del texto para el fondo
+            const textWidth = pdf.getTextWidth(subtitleText);
+            const textHeight = 8; // Altura aproximada del texto en mm
+            const padding = 4; // Padding alrededor del texto
+            
+            // Dibujar rectángulo negro como fondo
+            pdf.setFillColor(0, 0, 0); // Color negro
+            const rectX = (pageWidth - textWidth - padding * 2) / 2;
+            const rectY = 38;
+            pdf.rect(rectX, rectY, textWidth + padding * 2, textHeight + padding, 'F');
+            
+            // Cambiar color del texto a blanco y agregar el texto
+            pdf.setTextColor(255, 255, 255); // Color blanco
+            pdf.text(subtitleText, pageWidth / 2, 46, { align: 'center' });
+            
+            // Restaurar color del texto a negro para el resto del documento
+            pdf.setTextColor(0, 0, 0);
 
-            // Línea separadora
-            pdf.setLineWidth(0.5);
-            pdf.line(margin, 50, pageWidth - margin, 50);
+            //// Línea separadora
+            //pdf.setLineWidth(0.5);
+            //pdf.line(margin, 47, pageWidth - margin, 47);
         }
 
         // Función para cargar imagen como base64
