@@ -223,40 +223,133 @@
 </div>
 
 <!-- Modal para cambiar contraseña -->
-<div class="modal fade" id="changePasswordModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Cambiar Contraseña</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="changePasswordModal2" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title d-flex align-items-center" id="changePasswordModalLabel">
+                    <i class="fa fa-key me-2"></i>
+                    Cambiar Contraseña
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar modal"></button>
             </div>
-            <EditForm Model="changePasswordModel" OnValidSubmit="ChangePassword">
-                <DataAnnotationsValidator />
-                <div class="modal-body">
-                    <p><strong>Usuario:</strong> @selectedUser?.Email</p>
-                    <div class="mb-3">
-                        <label class="form-label">Nueva Contraseña</label>
-                        <InputText type="password" class="form-control" @bind-Value="changePasswordModel.NewPassword" />
-                        <ValidationMessage For="() => changePasswordModel.NewPassword" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Confirmar Contraseña</label>
-                        <InputText type="password" class="form-control" @bind-Value="changePasswordModel.ConfirmPassword" />
-                        <ValidationMessage For="() => changePasswordModel.ConfirmPassword" />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-warning" disabled="@isProcessing">
-                        @if (isProcessing)
+            <EditForm Model="changePasswordModel" OnValidSubmit="ChangePassword" OnInvalidSubmit="OnInvalidPasswordSubmit">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body p-4">
+                        <!-- Información del usuario -->
+                        <div class="alert alert-info border-0 mb-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fa fa-user-circle fs-4 me-3 text-primary"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-bold">Usuario seleccionado</h6>
+                                    <p class="mb-0 text-muted">@selectedUser?.Email</p>
+                                </div>
+                            </div>
+                        </div>
+                        @if (!changePasswordModel.IsAdmin)
                         {
-                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            <div class="row g-3 mb-3">
+                                <div class="col-12">
+                                    <label for="currentPassword" class="form-label fw-semibold">
+                                        <i class="fa fa-user-lock me-2 text-secondary"></i>
+                                        Contraseña Actual 2
+                                    </label>
+                                    <div class="input-group">
+                                        <InputText id="currentPassword" type="password" class="form-control form-control-lg"
+                                                   @bind-Value="changePasswordModel.CurrentPassword"
+                                                   placeholder="Ingrese la contraseña actual del usuario" />
+                                        <button type="button" class="btn btn-outline-secondary" onclick="window.passwordStrength.toggleVisibility('currentPassword', 'currentPasswordIcon')">
+                                        <i id="currentPasswordIcon" class="fa fa-eye"></i>
+                                    </button>
+                                    </div>
+                                    <div class="validation-message-container mt-2">
+                                        <ValidationMessage For="() => changePasswordModel.CurrentPassword" class="text-danger d-flex align-items-center" />
+                                    </div>
+                                </div>
+                            </div>
+                            <hr class="my-4" />
                         }
-                        Cambiar Contraseña
-                    </button>
-                </div>
-            </EditForm>
-        </div>
+                        <!-- Campos de contraseña -->
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="newPassword" class="form-label fw-semibold">
+                                    <i class="fa fa-lock me-2 text-primary"></i>
+                                    Nueva Contraseña
+                                </label>
+                                <div class="input-group">
+                                    <InputText id="newPassword" type="password" class="form-control form-control-lg"
+                                               @bind-Value="changePasswordModel.NewPassword"
+                                               @oninput="OnPasswordInput"
+                                               placeholder="Ingrese la nueva contraseña"
+                                               aria-describedby="newPasswordHelp" />
+                                    <button type="button" class="btn btn-outline-secondary" onclick="window.passwordStrength.toggleVisibility('newPassword', 'newPasswordIcon')">
+                                        <i id="newPasswordIcon" class="fa fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div id="newPasswordHelp" class="form-text">
+                                    <i class="fa fa-info-circle me-1"></i>
+                                    Mínimo 6 caracteres, incluya mayúsculas, minúsculas y números
+                                </div>
+                                <div class="validation-message-container mt-2">
+                                    <ValidationMessage For="() => changePasswordModel.NewPassword" class="text-danger d-flex align-items-center" />
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="confirmPassword" class="form-label fw-semibold">
+                                    <i class="fa fa-check-circle me-2 text-success"></i>
+                                    Confirmar Contraseña
+                                </label>
+                                <div class="input-group">
+                                    <InputText id="confirmPassword" type="password" class="form-control form-control-lg"
+                                               @bind-Value="changePasswordModel.ConfirmPassword"
+                                               placeholder="Confirme la nueva contraseña"
+                                               aria-describedby="confirmPasswordHelp" />
+                                    <button type="button" class="btn btn-outline-secondary" onclick="window.passwordStrength.toggleVisibility('confirmPassword', 'confirmPasswordIcon')">
+                                        <i id="confirmPasswordIcon" class="fa fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div id="confirmPasswordHelp" class="form-text">
+                                    <i class="fa fa-shield-alt me-1"></i>
+                                    Debe coincidir exactamente con la nueva contraseña
+                                </div>
+                                <div class="validation-message-container mt-2">
+                                    <ValidationMessage For="() => changePasswordModel.ConfirmPassword" class="text-danger d-flex align-items-center" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indicador de fortaleza de contraseña -->
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-semibold">Fortaleza de la contraseña:</span>
+                                <span id="passwordStrengthText" class="small">-</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div id="passwordStrengthBar" class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 bg-light p-4">
+                        <button type="button" class="btn btn-outline-secondary btn-lg px-4" data-bs-dismiss="modal">
+                            <i class="fa fa-times me-2"></i>
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-lg px-4" disabled="@isProcessing">
+                            @if (isProcessing)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Procesando...</span>
+                            }
+                            else
+                            {
+                                <i class="fa fa-save me-2"></i>
+                                <span>Cambiar Contraseña</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+</div>
     </div>
 </div>
 
@@ -344,12 +437,26 @@
     private async Task ShowChangePasswordModal(ApplicationUser user)
     {
         selectedUser = user;
+
+        // Determinar si el usuario actual es Administrador
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = authState.User;
+        var isAdmin = currentUser.IsInRole("Admin");
+
         changePasswordModel = new ChangePasswordModel
         {
-            UserId = user.Id
+            UserId = user.Id,
+            IsAdmin = isAdmin // <-- Lógica clave para pasar el rol al modelo
         };
+
         statusMessage = string.Empty;
-        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('changePasswordModal')).show()");
+        isError = false;
+        StateHasChanged();
+        await JSRuntime.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('changePasswordModal2')).show()");
+        
+        // Inicializar el indicador de fortaleza después de mostrar el modal
+        await Task.Delay(100); // Pequeña pausa para asegurar que el modal esté completamente renderizado
+        await JSRuntime.InvokeVoidAsync("window.passwordStrength.init", "newPassword");
     }
 
     private async Task ShowEditUserModal(ApplicationUser user)
@@ -405,20 +512,77 @@
         }
     }
 
+    private async Task OnPasswordInput(ChangeEventArgs e)
+    {
+        var password = e.Value?.ToString() ?? string.Empty;
+        changePasswordModel.NewPassword = password;
+        
+        // Actualizar el indicador de fortaleza en tiempo real
+        await JSRuntime.InvokeVoidAsync("window.passwordStrength.update", password);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Asegurar que el script esté cargado
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                if (typeof window.passwordStrength === 'undefined') {
+                    console.warn('Password strength script not loaded yet');
+                }
+            ");
+        }
+    }
+
+    private async Task OnInvalidPasswordSubmit()
+    {
+        Console.WriteLine("[DEBUG] OnInvalidPasswordSubmit called - Form validation failed");
+        Console.WriteLine($"[DEBUG] UserId: {changePasswordModel.UserId}");
+        Console.WriteLine($"[DEBUG] NewPassword: '{changePasswordModel.NewPassword}'");
+        Console.WriteLine($"[DEBUG] ConfirmPassword: '{changePasswordModel.ConfirmPassword}'");
+        Console.WriteLine($"[DEBUG] NewPassword length: {changePasswordModel.NewPassword?.Length ?? 0}");
+        Console.WriteLine($"[DEBUG] ConfirmPassword length: {changePasswordModel.ConfirmPassword?.Length ?? 0}");
+        Console.WriteLine($"[DEBUG] Passwords match: {changePasswordModel.NewPassword == changePasswordModel.ConfirmPassword}");
+
+        // Verificar validaciones específicas
+        if (string.IsNullOrEmpty(changePasswordModel.NewPassword))
+            Console.WriteLine("[DEBUG] NewPassword is null or empty");
+        if (changePasswordModel.NewPassword?.Length < 6)
+            Console.WriteLine("[DEBUG] NewPassword is too short (< 6 characters)");
+        if (string.IsNullOrEmpty(changePasswordModel.ConfirmPassword))
+            Console.WriteLine("[DEBUG] ConfirmPassword is null or empty");
+        if (changePasswordModel.NewPassword != changePasswordModel.ConfirmPassword)
+            Console.WriteLine("[DEBUG] Passwords do not match");
+
+        statusMessage = "Por favor, complete todos los campos correctamente.";
+        isError = true;
+        StateHasChanged();
+    }
+
     private async Task ChangePassword()
     {
-        if (string.IsNullOrEmpty(changePasswordModel.UserId)) return;
+        Console.WriteLine("[DEBUG] ChangePassword method called");
+        Console.WriteLine($"[DEBUG] UserId: {changePasswordModel.UserId}");
+        Console.WriteLine($"[DEBUG] NewPassword length: {changePasswordModel.NewPassword?.Length ?? 0}");
+        Console.WriteLine($"[DEBUG] ConfirmPassword length: {changePasswordModel.ConfirmPassword?.Length ?? 0}");
+
+        if (string.IsNullOrEmpty(changePasswordModel.UserId))
+        {
+            Console.WriteLine("[DEBUG] UserId is null or empty, returning");
+            return;
+        }
 
         try
         {
             isProcessing = true;
+            Console.WriteLine("[DEBUG] Calling UserManagementService.UpdateUserPasswordAsync");
             var result = await UserManagementService.UpdateUserPasswordAsync(changePasswordModel.UserId, changePasswordModel.NewPassword, currentUserId);
 
             if (result.Succeeded)
             {
                 statusMessage = "Contraseña actualizada exitosamente.";
                 isError = false;
-                await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide()");
+                await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('changePasswordModal2')).hide()");
             }
             else
             {
@@ -587,17 +751,143 @@
         public UserType UserType { get; set; }
     }
 
-    public class ChangePasswordModel
+    public class ChangePasswordModel : IValidatableObject
     {
-        [Required(ErrorMessage = "El ID del usuario es requerido.")]
         public string UserId { get; set; } = string.Empty;
+        public bool IsAdmin { get; set; } // Para saber si el que hace la acción es admin
+        public string CurrentPassword { get; set; } = string.Empty; // Campo que faltaba
 
         [Required(ErrorMessage = "La nueva contraseña es requerida.")]
-        [StringLength(100, ErrorMessage = "La contraseña debe tener al menos {2} caracteres.", MinimumLength = 6)]
+        [StringLength(100, ErrorMessage = "La contraseña debe tener al menos 6 caracteres.", MinimumLength = 6)]
         public string NewPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "La confirmación de contraseña es requerida.")]
+        [Required(ErrorMessage = "Debe confirmar la nueva contraseña.")]
         [Compare("NewPassword", ErrorMessage = "Las contraseñas no coinciden.")]
         public string ConfirmPassword { get; set; } = string.Empty;
+
+        // Con esto, "CurrentPassword" solo es requerida si el usuario NO es admin
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (!IsAdmin && string.IsNullOrWhiteSpace(CurrentPassword))
+            {
+                yield return new ValidationResult(
+                    "La contraseña actual es requerida.",
+                    new[] { nameof(CurrentPassword) });
+            }
+        }
     }
 }
+
+<script>
+    // Función para mostrar/ocultar contraseñas
+    function togglePasswordVisibility(inputId) {
+        const input = document.getElementById(inputId);
+        const icon = input.nextElementSibling.querySelector('i');
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
+    // Función para evaluar la fortaleza de la contraseña
+    function checkPasswordStrength(password) {
+        let score = 0;
+        let feedback = [];
+        
+        if (!password) {
+            return { score: 0, text: '-', class: '' };
+        }
+        
+        // Longitud
+        if (password.length >= 8) score += 25;
+        else feedback.push('al menos 8 caracteres');
+        
+        // Mayúsculas
+        if (/[A-Z]/.test(password)) score += 25;
+        else feedback.push('mayúsculas');
+        
+        // Minúsculas
+        if (/[a-z]/.test(password)) score += 25;
+        else feedback.push('minúsculas');
+        
+        // Números
+        if (/\d/.test(password)) score += 15;
+        else feedback.push('números');
+        
+        // Caracteres especiales
+        if (/[^\w\s]/.test(password)) score += 10;
+        else feedback.push('símbolos');
+        
+        let strengthText, strengthClass;
+        
+        if (score < 30) {
+            strengthText = 'Muy débil';
+            strengthClass = 'bg-danger';
+        } else if (score < 60) {
+            strengthText = 'Débil';
+            strengthClass = 'bg-warning';
+        } else if (score < 90) {
+            strengthText = 'Buena';
+            strengthClass = 'bg-info';
+        } else {
+            strengthText = 'Excelente';
+            strengthClass = 'bg-success';
+        }
+        
+        return { score, text: strengthText, class: strengthClass };
+    }
+
+    // Actualizar indicador de fortaleza en tiempo real
+    function updatePasswordStrength() {
+        const passwordInput = document.getElementById('newPassword');
+        const strengthBar = document.getElementById('passwordStrengthBar');
+        const strengthText = document.getElementById('passwordStrengthText');
+        
+        if (passwordInput && strengthBar && strengthText) {
+            const password = passwordInput.value;
+            const strength = checkPasswordStrength(password);
+            
+            strengthBar.style.width = strength.score + '%';
+            strengthBar.className = 'progress-bar ' + strength.class;
+            strengthBar.setAttribute('aria-valuenow', strength.score);
+            strengthText.textContent = strength.text;
+        }
+    }
+
+    // Inicializar eventos cuando el modal se abre
+    document.addEventListener('DOMContentLoaded', function() {
+        const changePasswordModal = document.getElementById('changePasswordModal');
+        if (changePasswordModal) {
+            changePasswordModal.addEventListener('shown.bs.modal', function() {
+                const newPasswordInput = document.getElementById('newPassword');
+                if (newPasswordInput) {
+                    // Enfocar el primer campo
+                    newPasswordInput.focus();
+                    
+                    // Agregar event listener para fortaleza de contraseña
+                    newPasswordInput.addEventListener('input', updatePasswordStrength);
+                    
+                    // Inicializar indicador
+                    updatePasswordStrength();
+                }
+            });
+            
+            changePasswordModal.addEventListener('hidden.bs.modal', function() {
+                // Limpiar indicador cuando se cierra el modal
+                const strengthBar = document.getElementById('passwordStrengthBar');
+                const strengthText = document.getElementById('passwordStrengthText');
+                if (strengthBar && strengthText) {
+                    strengthBar.style.width = '0%';
+                    strengthBar.className = 'progress-bar';
+                    strengthText.textContent = '-';
+                }
+            });
+        }
+    });
+</script>
