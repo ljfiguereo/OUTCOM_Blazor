@@ -180,51 +180,161 @@
     </div>
 </div>
 
-<!-- Change Password Modal -->
+<!-- Modal de Cambio de Contraseña -->
 <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="changePasswordModalLabel">Cambiar Contraseña</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-dialog modal-dialog-centered modal-lg shadow-lg">
+        <div class="modal-content border-0 rounded-4">
+            <!-- Header del Modal -->
+            <div class="bg-primary border-0 modal-header text-white">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-key me-3 fs-4"></i>
+                    <div>
+                        <h5 class="modal-title mb-0 fw-bold" id="changePasswordModalLabel">Cambiar Contraseña</h5>
+                        <small class="opacity-75">Actualiza tu contraseña de forma segura</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Cerrar">x</button>
             </div>
-            <EditForm Model="changePasswordModel" OnValidSubmit="ChangePassword">
-                <DataAnnotationsValidator />
-                <div class="modal-body">
+
+            <div class="modal-body p-4">
+                <EditForm Model="changePasswordModel" OnValidSubmit="ChangePassword">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger mb-3" />
+
+                    <!-- Mensaje de Estado -->
                     @if (!string.IsNullOrEmpty(statusMessage))
                     {
-                        <div class="alert @(isError ? "alert-danger" : "alert-success") alert-dismissible fade show" role="alert">
-                            @statusMessage
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <div class="alert @(isError ? "alert-danger" : "alert-success") alert-dismissible fade show d-flex align-items-center" role="alert">
+                            <i class="@(isError ? "fa fa-exclamation-triangle" : "fa fa-check-circle") me-2"></i>
+                            <div class="flex-grow-1">@statusMessage</div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
                         </div>
                     }
-                    <div class="mb-3">
-                        <label class="form-label">Contraseña Actual</label>
-                        <InputText type="password" class="form-control" @bind-Value="currentPassword" />
-                        <ValidationMessage For="() => currentPassword" />
+
+                    <!-- Contraseña Actual -->
+                    <div class="mb-4">
+                        <label for="currentPassword" class="form-label fw-semibold text-dark">
+                            <i class="fa fa-lock me-2 text-primary"></i>Contraseña Actual
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fa fa-shield-alt text-muted"></i>
+                            </span>
+                            <input type="@(showCurrentPassword ? "text" : "password")" 
+                                   class="form-control border-start-0 ps-0" 
+                                   id="currentPassword" 
+                                   @bind="currentPassword" 
+                                   placeholder="Ingresa tu contraseña actual"
+                                   required 
+                                   aria-describedby="currentPasswordHelp" />
+                            <button type="button" 
+                                    class="btn btn-outline-secondary border-start-0" 
+                                    @onclick="() => showCurrentPassword = !showCurrentPassword"
+                                    aria-label="@(showCurrentPassword ? "Ocultar" : "Mostrar") contraseña">
+                                <i class="fa @(showCurrentPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                            </button>
+                        </div>
+                        <div id="currentPasswordHelp" class="form-text">
+                            <i class="fa fa-info-circle me-1"></i>Ingresa tu contraseña actual para verificar tu identidad
+                        </div>
                     </div>
+
+                    <!-- Nueva Contraseña -->
                     <div class="mb-3">
-                        <label class="form-label">Nueva Contraseña</label>
-                        <InputText type="password" class="form-control" @bind-Value="changePasswordModel.NewPassword" />
-                        <ValidationMessage For="() => changePasswordModel.NewPassword" />
+                        <label for="newPassword" class="form-label fw-semibold text-dark">
+                            <i class="fa fa-key me-2 text-success"></i>Nueva Contraseña
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fa fa-lock text-muted"></i>
+                            </span>
+                            <InputText class="form-control border-start-0 border-end-0 ps-0" 
+                                       id="newPassword" 
+                                       @bind-Value="changePasswordModel.NewPassword" 
+                                       type="@(showNewPassword ? "text" : "password")"
+                                       placeholder="Crea una contraseña segura"
+                                       @oninput="OnNewPasswordInput"
+                                       aria-describedby="newPasswordHelp" />
+                            <button type="button" 
+                                    class="btn btn-outline-secondary" 
+                                    @onclick="() => showNewPassword = !showNewPassword"
+                                    aria-label="@(showNewPassword ? "Ocultar" : "Mostrar") contraseña">
+                                <i class="fa @(showNewPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Indicador de Fortaleza de Contraseña -->
+                        <div class="mt-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">Fortaleza de la contraseña:</small>
+                                <small id="passwordStrengthText" class="fw-semibold">Muy débil</small>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div id="passwordStrengthBar" 
+                                     class="progress-bar transition-all" 
+                                     role="progressbar" 
+                                     style="width: 0%" 
+                                     aria-valuenow="0" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        
+                        <div id="newPasswordHelp" class="form-text mt-2">
+                            <i class="fa fa-lightbulb me-1"></i>Usa al menos 8 caracteres con mayúsculas, minúsculas, números y símbolos
+                        </div>
+                        <ValidationMessage For="@(() => changePasswordModel.NewPassword)" class="text-danger small mt-1" />
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Confirmar Nueva Contraseña</label>
-                        <InputText type="password" class="form-control" @bind-Value="changePasswordModel.ConfirmPassword" />
-                        <ValidationMessage For="() => changePasswordModel.ConfirmPassword" />
+
+                    <!-- Confirmar Nueva Contraseña -->
+                    <div class="mb-4">
+                        <label for="confirmPassword" class="form-label fw-semibold text-dark">
+                            <i class="fa fa-check-double me-2 text-info"></i>Confirmar Nueva Contraseña
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fa fa-lock text-muted"></i>
+                            </span>
+                            <InputText class="form-control border-start-0 border-end-0 ps-0" 
+                                       id="confirmPassword" 
+                                       @bind-Value="changePasswordModel.ConfirmPassword" 
+                                       type="@(showConfirmPassword ? "text" : "password")"
+                                       placeholder="Confirma tu nueva contraseña"
+                                       aria-describedby="confirmPasswordHelp" />
+                            <button type="button" 
+                                    class="btn btn-outline-secondary" 
+                                    @onclick="() => showConfirmPassword = !showConfirmPassword"
+                                    aria-label="@(showConfirmPassword ? "Ocultar" : "Mostrar") contraseña">
+                                <i class="fa @(showConfirmPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                            </button>
+                        </div>
+                        <div id="confirmPasswordHelp" class="form-text">
+                            <i class="fa fa-info-circle me-1"></i>Repite la nueva contraseña para confirmar
+                        </div>
+                        <ValidationMessage For="@(() => changePasswordModel.ConfirmPassword)" class="text-danger small mt-1" />
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseChangePasswordModal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" disabled="@isProcessing">
-                        @if (isProcessing)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2"></span>
-                        }
-                        Cambiar Contraseña
-                    </button>
-                </div>
-            </EditForm>
+
+                    <!-- Footer del Modal -->
+                    <div class="modal-footer border-0 bg-light p-4">
+                            <button type="button" class="btn btn-outline-secondary btn-lg px-4" data-bs-dismiss="modal"
+                                    disabled="@isProcessing">
+                                <i class="fa fa-times me-2"></i>Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg px-4" disabled="@isProcessing">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Procesando...</span>
+                                }
+                                else
+                                {
+                                    <i class="fa fa-save me-2"></i>
+                                    <span>Cambiar Contraseña</span>
+                                }
+                            </button>
+                    </div>
+                </EditForm>
+            </div>
         </div>
     </div>
 </div>
@@ -245,6 +355,9 @@
     private bool isProcessing = false;
     private string statusMessage = string.Empty;
     private bool isError = false;
+    private bool showCurrentPassword = false;
+    private bool showNewPassword = false;
+    private bool showConfirmPassword = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -339,6 +452,15 @@
     private async Task CloseChangePasswordModal()
     {
         await JSRuntime.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide()");
+    }
+
+    private async Task OnNewPasswordInput(ChangeEventArgs e)
+    {
+        var password = e.Value?.ToString() ?? string.Empty;
+        changePasswordModel.NewPassword = password;
+        
+        // Actualizar el indicador de fortaleza usando JavaScript
+        await JSRuntime.InvokeVoidAsync("updatePasswordStrength", password);
     }
 
     private async Task ChangePassword()
