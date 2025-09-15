@@ -55,11 +55,11 @@ namespace OutCom.Services
             {
                 query = query.Where(f => f.Path.StartsWith(path));
             }
-            else
-            {
-                // Mostrar archivos en la raíz (sin path padre)
-                query = query.Where(f => !f.Path.Contains("/"));
-            }
+            //else
+            //{
+            //    // Mostrar archivos en la raíz (sin path padre)
+            //    query = query.Where(f => !f.Path.Contains("/"));
+            //}
 
             return await query.OrderBy(f => f.Type).ThenBy(f => f.Name).ToListAsync();
         }

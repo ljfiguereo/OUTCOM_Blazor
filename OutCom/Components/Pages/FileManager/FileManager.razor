@@ -1712,48 +1712,71 @@
         return lastSlash >= 0 ? path.Substring(lastSlash + 1) : path;
     }
 
-    private RenderFragment RenderDirectoryTree(List<DirectoryItem> items) => builder =>
+    private RenderFragment RenderDirectoryTree(List<DirectoryItem> items, int level = 0) => builder =>
     {
         var sequence = 0;
 
         foreach (var item in items)
         {
             builder.OpenElement(sequence++, "div");
-            builder.AddAttribute(sequence++, "class", "directory-item");
+            builder.AddAttribute(sequence++, "class", $"directory-item level-{level}");
+
+            // Contenedor de indentación para líneas jerárquicas
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "directory-indent");
+            builder.AddAttribute(sequence++, "style", $"padding-left: {level * 20}px;");
 
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", $"directory-node {(item.Path == currentPath ? "active" : "")}");
             builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => NavigateToFolder(item.Path)));
 
+            // Botón de expansión/colapso
             if (item.Children.Any())
             {
+                builder.OpenElement(sequence++, "button");
+                builder.AddAttribute(sequence++, "class", "expand-toggle");
+                builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleDirectoryExpansion(item)));
+                builder.AddAttribute(sequence++, "type", "button");
                 builder.OpenElement(sequence++, "i");
                 builder.AddAttribute(sequence++, "class", item.IsExpanded ? "fe fe-chevron-down" : "fe fe-chevron-right");
-                builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => ToggleDirectoryExpansion(item)));
+                builder.CloseElement();
                 builder.CloseElement();
             }
             else
             {
-                builder.OpenElement(sequence++, "span");
-                builder.AddAttribute(sequence++, "class", "directory-spacer");
+                builder.OpenElement(sequence++, "button");
+                builder.AddAttribute(sequence++, "class", "expand-toggle no-children");
+                builder.AddAttribute(sequence++, "type", "button");
+                builder.OpenElement(sequence++, "i");
+                builder.AddAttribute(sequence++, "class", "fe fe-minus");
+                builder.CloseElement();
                 builder.CloseElement();
             }
 
+            // Icono de carpeta
             builder.OpenElement(sequence++, "i");
-            builder.AddAttribute(sequence++, "class", "fe fe-folder");
+            builder.AddAttribute(sequence++, "class", item.IsExpanded && item.Children.Any() ? "fe fe-folder-open" : "fe fe-folder");
             builder.CloseElement();
 
+            // Nombre de la carpeta
             builder.OpenElement(sequence++, "span");
+            builder.AddAttribute(sequence++, "class", "directory-name");
+            builder.AddAttribute(sequence++, "title", item.Path);
             builder.AddContent(sequence++, item.Name);
             builder.CloseElement();
 
-            builder.CloseElement(); // directory-node
+            // Badge de cliente - DirectoryItem no tiene ClientName
+            // Esta funcionalidad se puede agregar más tarde si es necesario
 
+            builder.CloseElement(); // directory-node
+            builder.CloseElement(); // directory-indent
+
+            // Renderizar hijos si están expandidos
             if (item.IsExpanded && item.Children.Any())
             {
                 builder.OpenElement(sequence++, "div");
-                builder.AddAttribute(sequence++, "class", "directory-children");
-                builder.AddContent(sequence++, RenderDirectoryTree(item.Children));
+                builder.AddAttribute(sequence++, "class", $"directory-children {(item.IsExpanded ? "expanded" : "collapsed")}");
+                builder.AddContent(sequence++, RenderDirectoryTree(item.Children, level + 1));
                 builder.CloseElement();
             }
 
@@ -2497,33 +2520,33 @@
         StateHasChanged();
     }
 
-    private void NavigateUp()
+    private async Task NavigateUp()
     {
         if (string.IsNullOrEmpty(currentPath)) return;
 
         var lastSlash = currentPath.LastIndexOf('/');
         currentPath = lastSlash > 0 ? currentPath.Substring(0, lastSlash) : "";
-        LoadCurrentDirectory();
+        await LoadCurrentDirectory();
     }
 
-    private async Task OnDragOver(DragEventArgs e)
+    private void OnDragOver(DragEventArgs e)
     {
         e.DataTransfer.DropEffect = "copy";
     }
 
-    private async Task OnDragEnter(DragEventArgs e)
+    private void OnDragEnter(DragEventArgs e)
     {
         isDragOver = true;
         StateHasChanged();
     }
 
-    private async Task OnDragLeave(DragEventArgs e)
+    private void OnDragLeave(DragEventArgs e)
     {
         isDragOver = false;
         StateHasChanged();
     }
 
-    private async Task OnDrop(DragEventArgs e)
+    private void OnDrop(DragEventArgs e)
     {
         isDragOver = false;
 

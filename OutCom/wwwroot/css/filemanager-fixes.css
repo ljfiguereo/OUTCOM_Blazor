@@ -481,10 +481,11 @@
   overflow-y: auto;
   padding: var(--fm-space-md);
   font-size: 14px;
+  position: relative;
 }
 
 .directory-item {
-  margin-bottom: var(--fm-space-xs);
+  margin-bottom: 2px;
   position: relative;
   transition: all 0.3s ease;
 }
@@ -494,8 +495,46 @@
   border-left: 3px solid var(--fm-primary);
 }
 
+/* Líneas jerárquicas de conexión */
+.directory-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--fm-gray-300);
+  z-index: 1;
+}
+
+.directory-item.level-0::before {
+  display: none;
+}
+
+.directory-item:last-child::before {
+  height: 50%;
+}
+
 .directory-indent {
   position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Línea horizontal de conexión */
+.directory-indent::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  width: 12px;
+  height: 1px;
+  background-color: var(--fm-gray-300);
+  z-index: 2;
+}
+
+.level-0 .directory-indent::before {
+  display: none;
 }
 
 .directory-node {
@@ -511,6 +550,8 @@
   position: relative;
   margin: 1px 4px;
   min-height: 32px;
+  flex: 1;
+  z-index: 3;
 }
 
 .directory-node:hover {
@@ -542,18 +583,21 @@
   border: none;
   padding: 2px;
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: 3px;
   width: 20px;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  color: inherit;
+  color: var(--fm-gray-600);
+  flex-shrink: 0;
 }
 
 .expand-toggle:hover {
-  background-color: rgba(0,0,0,0.1);
+  background-color: var(--fm-gray-200);
+  color: var(--fm-primary);
+  transform: scale(1.1);
 }
 
 .expand-toggle.no-children {
@@ -563,10 +607,11 @@
 
 .expand-toggle.no-children:hover {
   background-color: transparent;
+  transform: none;
 }
 
 .expand-toggle i {
-  font-size: 10px;
+  font-size: 12px;
   transition: transform 0.2s ease;
 }
 
@@ -588,12 +633,39 @@
   color: var(--fm-gray-600);
 }
 
+/* Iconos de carpeta mejorados */
+.directory-node .fe-folder,
+.directory-node .fe-folder-open {
+  color: #f59e0b;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.directory-node.active .fe-folder,
+.directory-node.active .fe-folder-open {
+  color: white;
+}
+
+.directory-node:hover .fe-folder,
+.directory-node:hover .fe-folder-open {
+  transform: scale(1.1);
+  color: #d97706;
+}
+
 .directory-name {
   flex: 1;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--fm-gray-800);
+  transition: color 0.2s ease;
+}
+
+.directory-node.active .directory-name {
+  color: white;
+  font-weight: 600;
 }
 
 .client-badge {
@@ -615,42 +687,49 @@
 }
 
 .directory-children {
-  margin-left: var(--fm-space-lg);
-  border-left: 1px solid var(--fm-gray-200);
-  padding-left: var(--fm-space-md);
-  margin-top: var(--fm-space-xs);
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 2px;
 }
 
 .directory-children.expanded {
-  animation: expandChildren 0.3s ease-out;
+  max-height: 2000px;
+  opacity: 1;
+  transform: translateY(0);
+  animation: expandChildren 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .directory-children.collapsed {
-  animation: collapseChildren 0.3s ease-in;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-10px);
+  animation: collapseChildren 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes expandChildren {
   from {
     opacity: 0;
     max-height: 0;
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
-    max-height: 500px;
+    max-height: 2000px;
+    transform: translateY(0);
   }
 }
 
 @keyframes collapseChildren {
   from {
     opacity: 1;
-    max-height: 500px;
+    max-height: 2000px;
+    transform: translateY(0);
   }
   to {
     opacity: 0;
     max-height: 0;
+    transform: translateY(-10px);
   }
 }
 
