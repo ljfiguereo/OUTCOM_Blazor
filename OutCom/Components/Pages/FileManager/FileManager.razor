@@ -125,11 +125,14 @@
                             @onclick="@(() => SetViewMode("grid"))" title="Vista de cuadrícula">
                         <i class="fe fe-grid"></i>
                     </button>
-                    <button class="fm-view-btn @(viewMode == "list" ? "active" : "")"
-                            @onclick="@(() => SetViewMode("list"))" title="Vista de lista">
-                        <i class="fe fe-list"></i>
-                    </button>
-                </div>
+                    @if (isAdmin)
+                    {
+                        <button class="fm-view-btn @(viewMode == "list" ? "active" : "")"
+                                @onclick="@(() => SetViewMode("list"))" title="Vista de lista">
+                            <i class="fe fe-list"></i>
+                        </button>
+                    }
+                    </div>
             </div>
         </div>
     </header>
@@ -810,10 +813,11 @@
                     <button type="button" class="btn-close btn-close-white" @onclick="() => CloseDeleteConfirmModal()"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-warning">
-                        <i class="fe fe-exclamation-triangle me-2"></i>
-                        <strong>¿Está seguro de que desea eliminar los siguientes elementos?</strong>
-                        <p class="mb-0 mt-2">Esta acción eliminará permanentemente los archivos del servidor y no se puede deshacer.</p>
+                    <div class="alert alert-warning d-block text-center">
+                        <i class="fa fa-exclamation-triangle me-2"></i>
+                        <strong>
+                            ¿Realmente desea eliminar estos archivos?
+                        </strong>
                     </div>
 
                     <!-- Lista de elementos a eliminar -->
@@ -823,7 +827,7 @@
                         </h6>
                         
                         <div class="list-group mb-3" style="max-height: 300px; overflow-y: auto;">
-                            @foreach (var item in itemsToDelete)
+                            @foreach (var item in itemsToDelete.OrderByDescending(x=> x.IsDirectory))
                             {
                                 <div class="list-group-item d-flex align-items-center">
                                     <i class="@GetFileIcon(item) me-2 @(item.IsDirectory ? "text-warning" : "text-primary")"></i>
@@ -850,64 +854,6 @@
                                 </div>
                             }
                         </div>
-
-                        <!-- Mostrar contenido de carpetas si las hay -->
-                        @if (itemsToDelete.Any(x => x.IsDirectory))
-                        {
-                            <div class="folder-contents-section">
-                                <h6 class="text-warning">
-                                    <i class="fe fe-folder-open"></i> Contenido de carpetas que se eliminará:
-                                </h6>
-                                
-                                @if (isLoadingFolderContents)
-                                {
-                                    <div class="text-center p-3">
-                                        <div class="spinner-border spinner-border-sm me-2"></div>
-                                        <span>Cargando contenido de carpetas...</span>
-                                    </div>
-                                }
-                                else if (folderContents.Any())
-                                {
-                                    <div class="alert alert-info">
-                                        <small>
-                                            <i class="fe fe-info"></i>
-                                            Se eliminarán <strong>@folderContents.Count</strong> elementos adicionales dentro de las carpetas seleccionadas.
-                                        </small>
-                                    </div>
-                                    
-                                    <div class="list-group" style="max-height: 200px; overflow-y: auto;">
-                                        @foreach (var content in folderContents.Take(10))
-                                        {
-                                            <div class="list-group-item list-group-item-light d-flex align-items-center">
-                                                <i class="@GetFileIcon(content) me-2 text-muted"></i>
-                                                <div class="flex-grow-1">
-                                                    <small class="text-muted">@content.Path</small>
-                                                    @if (!content.IsDirectory)
-                                                    {
-                                                        <small class="text-muted"> - @FormatFileSize(content.Size)</small>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
-                                        @if (folderContents.Count > 10)
-                                        {
-                                            <div class="list-group-item list-group-item-light text-center">
-                                                <small class="text-muted">... y @(folderContents.Count - 10) elementos más</small>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="alert alert-info">
-                                        <small>
-                                            <i class="fe fe-info"></i>
-                                            Las carpetas seleccionadas están vacías.
-                                        </small>
-                                    </div>
-                                }
-                            </div>
-                        }
 
                         <!-- Resumen de eliminación -->
                         <div class="deletion-summary mt-3 p-3 bg-danger-transparent bg-opacity-10 border border-danger">

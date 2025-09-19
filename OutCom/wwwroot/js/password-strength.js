@@ -133,10 +133,10 @@ function togglePasswordVisibility(inputId, iconId = null) {
         const icon = document.getElementById(iconId);
         if (icon) {
             if (isPassword) {
-                icon.className = 'fa fa-eye-slash';
+                icon.className = 'fas fa-eye-slash';
                 icon.title = 'Ocultar contraseña';
             } else {
-                icon.className = 'fa fa-eye';
+                icon.className = 'fas fa-eye';
                 icon.title = 'Mostrar contraseña';
             }
         }
