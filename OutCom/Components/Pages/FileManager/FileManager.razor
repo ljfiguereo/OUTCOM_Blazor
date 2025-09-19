@@ -6,6 +6,7 @@
 @using OutCom.Models
 @using OutCom.Services
 @using System.Security.Claims
+@using System.Threading
 @inject UserManager<ApplicationUser> UserManager
 @inject IFileManagerService fileManagerService
 @inject IJSRuntime JSRuntime
@@ -938,6 +939,9 @@
 
     // Variables para generación de PDF
     private bool isGeneratingPDF = false;
+    
+    // Semáforo para evitar operaciones concurrentes de DbContext
+    private readonly SemaphoreSlim _navigationSemaphore = new(1, 1);
 
     // Configuración de archivos para subir
     private List<IBrowserFile> pendingFiles = new();
@@ -1053,15 +1057,24 @@
                 isAdmin = authState.User.IsInRole("Admin");
                 isClient = authState.User.IsInRole("Client");
                 
-                await LoadAvailableClients();
-                await LoadCurrentDirectory();
-                await LoadDirectoryStructure();
-                
-                // Si es cliente, seleccionar automáticamente su primera carpeta
-                if (isClient && !isAdmin)
+                await _navigationSemaphore.WaitAsync();
+                try
                 {
-                    await SelectFirstClientFolder();
+                    await LoadAvailableClients();
+                    await LoadCurrentDirectory();
+                    await LoadDirectoryStructure();
                 }
+                finally
+                {
+                    _navigationSemaphore.Release();
+                }
+                
+                // Comentado: No seleccionar automáticamente carpeta para clientes
+                // Los usuarios deben hacer clic explícitamente en una carpeta
+                // if (isClient && !isAdmin)
+                // {
+                //     await SelectFirstClientFolder();
+                // }
             }
         }
         catch (Exception ex)
@@ -1122,7 +1135,28 @@
         try
         {
             var files = await fileManagerService.GetUserFilesAsync(userId, currentPath);
-            var allItems = files.Select(f => new FileSystemItem
+            
+            // Filtrar solo archivos directos del directorio actual (no subcarpetas)
+            var directFiles = files.Where(f => 
+            {
+                if (string.IsNullOrEmpty(currentPath))
+                {
+                    // En el directorio raíz, mostrar solo elementos que no contengan "/"
+                    return !f.Path.Contains("/");
+                }
+                else
+                {
+                    // En subdirectorios, mostrar solo elementos directos
+                    var relativePath = f.Path.Substring(currentPath.Length);
+                    if (relativePath.StartsWith("/"))
+                        relativePath = relativePath.Substring(1);
+                    
+                    // Solo mostrar si no hay más "/" en el path relativo
+                    return !relativePath.Contains("/");
+                }
+            }).ToList();
+            
+            var allItems = directFiles.Select(f => new FileSystemItem
             {
                 Id = f.Id, Name = f.Name,Path = f.Path,
                 IsDirectory = f.Type == FileItemType.Folder, Size = f.Size,
@@ -1286,9 +1320,18 @@
 
     private async Task NavigateToFolder(string folderPath)
     {
-        currentPath = folderPath;
-        await LoadCurrentDirectory();
-        await UpdateSelectedClientId();
+        // Usar semáforo para evitar operaciones concurrentes de DbContext
+        await _navigationSemaphore.WaitAsync();
+        try
+        {
+            currentPath = folderPath;
+            await LoadCurrentDirectory();
+            await UpdateSelectedClientId();
+        }
+        finally
+        {
+            _navigationSemaphore.Release();
+        }
     }
 
     private void SetViewMode(string mode)
@@ -1348,8 +1391,17 @@
             await fileManagerService.CreateFolderAsync(newFolderName, currentPath, userId, selectedClientIdForNewFolder);
 
             showCreateFolderModal = false;
-            await LoadCurrentDirectory();
-            await LoadDirectoryStructure();
+            
+            await _navigationSemaphore.WaitAsync();
+            try
+            {
+                await LoadCurrentDirectory();
+                await LoadDirectoryStructure();
+            }
+            finally
+            {
+                _navigationSemaphore.Release();
+            }
 
             var selectedClient = availableClients.FirstOrDefault(c => c.Id == selectedClientIdForNewFolder);
             var clientName = selectedClient != null ? $"{selectedClient.FirstName} {selectedClient.LastName}" : "Cliente";
@@ -1534,8 +1586,16 @@
             // Eliminar archivos físicos del servidor
             await DeletePhysicalFiles(itemsToDelete);
 
-            await LoadCurrentDirectory();
-            await LoadDirectoryStructure();
+            await _navigationSemaphore.WaitAsync();
+            try
+            {
+                await LoadCurrentDirectory();
+                await LoadDirectoryStructure();
+            }
+            finally
+            {
+                _navigationSemaphore.Release();
+            }
             statusMessage = $"Se eliminaron {itemsToDelete.Count} elemento(s) exitosamente del servidor.";
             selectedItems.Clear();
             CloseDeleteConfirmModal();
@@ -2300,7 +2360,15 @@
 
             // Update UI status
             statusMessage = $"File {config.FileName} uploaded successfully";
-            await LoadCurrentDirectory();
+            await _navigationSemaphore.WaitAsync();
+             try
+             {
+                 await LoadCurrentDirectory();
+             }
+             finally
+             {
+                 _navigationSemaphore.Release();
+             }
         }
         catch (Exception ex)
         {
@@ -2470,9 +2538,18 @@
     {
         if (string.IsNullOrEmpty(currentPath)) return;
 
-        var lastSlash = currentPath.LastIndexOf('/');
-        currentPath = lastSlash > 0 ? currentPath.Substring(0, lastSlash) : "";
-        await LoadCurrentDirectory();
+        // Usar semáforo para evitar operaciones concurrentes
+        await _navigationSemaphore.WaitAsync();
+        try
+        {
+            var lastSlash = currentPath.LastIndexOf('/');
+            currentPath = lastSlash > 0 ? currentPath.Substring(0, lastSlash) : "";
+            await LoadCurrentDirectory();
+        }
+        finally
+        {
+            _navigationSemaphore.Release();
+        }
     }
 
     private void OnDragOver(DragEventArgs e)
@@ -2550,7 +2627,15 @@
             if (result != null)
             {
                 statusMessage = $"Archivo {result.Name} subido correctamente";
-                await LoadCurrentDirectory(); // Recargar la vista
+                await _navigationSemaphore.WaitAsync();
+                try
+                {
+                    await LoadCurrentDirectory(); // Recargar la vista
+                }
+                finally
+                {
+                    _navigationSemaphore.Release();
+                }
             }
             else
             {
